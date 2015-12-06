@@ -27,7 +27,9 @@ apply plugin: 'application'
 mainClassName = "de.thingweb.gui.ThingsClient"
 
 repositories {
-		maven { url "https://jitpack.io" }
+	maven { url "https://jitpack.io" }
+	mavenCentral()
+	jcenter()
 }
 
 dependencies {
