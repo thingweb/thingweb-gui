@@ -24,13 +24,11 @@
 
 package de.thingweb.gui;
 
-import de.thingweb.client.Client;
-import de.thingweb.client.ClientFactory;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.border.TitledBorder;
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.EventQueue;
+import java.awt.FlowLayout;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.dnd.DnDConstants;
 import java.awt.dnd.DropTarget;
@@ -39,16 +37,29 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
+
+import javax.swing.JButton;
+import javax.swing.JDialog;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTabbedPane;
+import javax.swing.UIManager;
+import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.border.EmptyBorder;
+import javax.swing.border.TitledBorder;
+
+import de.thingweb.client.Client;
+import de.thingweb.client.ClientFactory;
 
 /**
  *
@@ -167,7 +178,7 @@ public class ThingsClient extends JFrame {
 		final String sURIExamples = "https://github.com/w3c/wot/tree/master/TF-TD/TD%20Samples";
 		p.add(new URILabel(sURIExamples));
 		p.add(new JLabel("<html>.</html>"));
-
+		
 		tabbedPane.addTab("How to use", null, p);
 	}
 
@@ -298,6 +309,18 @@ public class ThingsClient extends JFrame {
 		});
 		// doDragAndDropText(btnAddJSONLDURI);
 		panel.add(btnAddJSONLDURI);
+		
+		JButton btnDiscoverTD = new JButton("Discover ThingDescriptions");
+		btnDiscoverTD.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				
+				final JDialog frame = new JDialog(ThingsClient.this, "Discover Things", true);
+				frame.getContentPane().add(new DiscoverPanel(ThingsClient.this));
+				frame.pack();
+				frame.setVisible(true);
+			}
+		});
+		panel.add(btnDiscoverTD);
 	}
 
 }
