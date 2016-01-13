@@ -28,6 +28,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import de.thingweb.client.Callback;
 import de.thingweb.client.Client;
 import de.thingweb.client.UnsupportedException;
+import de.thingweb.client.security.Registration;
+import de.thingweb.client.security.Security4NicePlugfest;
 import de.thingweb.desc.pojo.ActionDescription;
 import de.thingweb.desc.pojo.EventDescription;
 import de.thingweb.desc.pojo.PropertyDescription;
@@ -48,17 +50,25 @@ import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.io.IOException;
 import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.List;
+import javax.swing.border.TitledBorder;
 
 public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	
 	private static final Logger log = LoggerFactory.getLogger(ThingPanelUI.class);
 
 	private static final long serialVersionUID = 2117762031555752901L;
+	
+	// Security
+	JToggleButton tglbtnSecurity;
+	Security4NicePlugfest s4p;
+	Registration sreg;
+	String asToken;
 	
 	final Client client;
 	// TODO support other media types
@@ -127,6 +137,13 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		}
 		return textField;
 	}
+	
+	private Security4NicePlugfest getSecurity() {
+		if(s4p == null) {
+			s4p = new Security4NicePlugfest();
+		}
+		return s4p;
+	}
 
 	/**
 	 * Create the panel.
@@ -137,7 +154,10 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		propertyComponents = new HashMap<>();
 		
 		JPanel gbPanel = new JPanel();
-		gbPanel.setLayout(new GridBagLayout());
+		GridBagLayout gbl_gbPanel = new GridBagLayout();
+		gbl_gbPanel.rowWeights = new double[]{0.0, 1.0};
+		gbl_gbPanel.columnWeights = new double[]{1.0, 0.0, 0.0, 0.0, 0.0};
+		gbPanel.setLayout(gbl_gbPanel);
 		
 		infoTextPane = new JTextPane();
 		infoTextPane.setEditable(false);
@@ -169,10 +189,119 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		
 		// URI and such
 		GridBagConstraints gbc0_0 = new GridBagConstraints();
+		gbc0_0.insets = new Insets(0, 0, 5, 5);
 		gbc0_0.gridx = 0;
 		gbc0_0.gridy = yline;
 		gbc0_0.gridwidth = 4;
 		gbPanel.add(new JLabel("<html><h4>" + client.getUsedProtocolURI() + " (" + mediaType + ")</h4></html>"), gbc0_0);
+		
+		tglbtnSecurity = new JToggleButton("Security (ON)");
+		tglbtnSecurity.setSelected(true);
+		tglbtnSecurity.setHorizontalAlignment(SwingConstants.RIGHT);
+		GridBagConstraints gbc_tglbtnSecurity = new GridBagConstraints();
+		gbc_tglbtnSecurity.insets = new Insets(0, 0, 5, 0);
+		gbc_tglbtnSecurity.anchor = GridBagConstraints.EAST;
+		gbc_tglbtnSecurity.gridx = 4;
+		gbc_tglbtnSecurity.gridy = 0;		
+		gbPanel.add(tglbtnSecurity, gbc_tglbtnSecurity);
+		
+		yline++;
+		
+		JPanel panelSecurity = new JPanel();
+		panelSecurity.setBorder(new TitledBorder(null, "Security", TitledBorder.LEADING, TitledBorder.TOP, null, null));
+		GridBagConstraints gbc_panelSecurity = new GridBagConstraints();
+		gbc_panelSecurity.insets = new Insets(0, 0, 5, 0);
+		gbc_panelSecurity.gridwidth = 5;
+		gbc_panelSecurity.fill = GridBagConstraints.BOTH;
+		gbc_panelSecurity.gridx = 0;
+		gbc_panelSecurity.gridy = yline;
+		gbPanel.add(panelSecurity, gbc_panelSecurity);
+		GridBagLayout gbl_panelSecurity = new GridBagLayout();
+		gbl_panelSecurity.columnWidths = new int[]{0, 0, 0};
+		gbl_panelSecurity.rowHeights = new int[]{0, 0, 0, 0};
+		gbl_panelSecurity.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		gbl_panelSecurity.rowWeights = new double[]{0.0, 1.0, 1.0, Double.MIN_VALUE};
+		panelSecurity.setLayout(gbl_panelSecurity);
+		
+		JButton btnSecurityRegister = new JButton("1. Register");
+		GridBagConstraints gbc_btnSecurityRegister = new GridBagConstraints();
+		gbc_btnSecurityRegister.anchor = GridBagConstraints.WEST;
+		gbc_btnSecurityRegister.insets = new Insets(0, 0, 5, 5);
+		gbc_btnSecurityRegister.gridx = 0;
+		gbc_btnSecurityRegister.gridy = 0;
+		panelSecurity.add(btnSecurityRegister, gbc_btnSecurityRegister);
+		
+		JButton btnSecurityRequestToken = new JButton("2. Request Token");
+		GridBagConstraints gbc_btnSecurityRequestToken = new GridBagConstraints();
+		gbc_btnSecurityRequestToken.anchor = GridBagConstraints.WEST;
+		gbc_btnSecurityRequestToken.insets = new Insets(0, 0, 5, 0);
+		gbc_btnSecurityRequestToken.gridx = 1;
+		gbc_btnSecurityRequestToken.gridy = 0;
+		panelSecurity.add(btnSecurityRequestToken, gbc_btnSecurityRequestToken);
+		
+
+		JEditorPane textAreaSecurityToken = new JEditorPane();
+		textAreaSecurityToken.setEditable(false);
+		
+		JScrollPane scrollPane = new JScrollPane(textAreaSecurityToken);
+		scrollPane.setPreferredSize(new Dimension(100, 100));
+		scrollPane.setMaximumSize(new Dimension(100, 100));
+		scrollPane.setSize(new Dimension(100, 100));
+		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.insets = new Insets(0, 0, 5, 5);
+		gbc_scrollPane.fill = GridBagConstraints.BOTH;
+		gbc_scrollPane.gridx = 1;
+		gbc_scrollPane.gridy = 1;
+		panelSecurity.add(scrollPane, gbc_scrollPane);
+		
+		tglbtnSecurity.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent arg0) {
+				if (tglbtnSecurity.isSelected()) {
+					tglbtnSecurity.setBackground(Color.GREEN);
+					tglbtnSecurity.setText("Security (ON)");
+					panelSecurity.setVisible(true);
+					gbPanel.repaint();
+					gbPanel.updateUI();
+			    } else {
+			    	tglbtnSecurity.setBackground(Color.RED);
+			    	tglbtnSecurity.setText("Security (OFF)");
+			    	panelSecurity.setVisible(false);
+			    	sreg = null;
+			    	asToken = null;
+			    	textAreaSecurityToken.setText("");
+			    }
+			}
+		});
+		
+		btnSecurityRegister.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				Security4NicePlugfest sec = getSecurity();
+				try {
+					sreg = sec.requestRegistrationAM();
+					JOptionPane.showMessageDialog(null, "Registration succesful (client_id=" + sreg.c_id + ", client_security=" + sreg.c_secret + ")", "Security Registration", JOptionPane.INFORMATION_MESSAGE);
+				} catch (IOException e1) {
+					JOptionPane.showMessageDialog(null, "" + e1.getMessage(), "Security Registration", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
+		
+		btnSecurityRequestToken.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				if(sreg == null) {
+					JOptionPane.showMessageDialog(null, "Please first register!", "Security Request Token", JOptionPane.ERROR_MESSAGE);
+				} else {
+					Security4NicePlugfest sec = getSecurity();
+					try {
+						asToken = sec.requestASToken(sreg);
+						textAreaSecurityToken.setText(asToken);
+						JOptionPane.showMessageDialog(null, "Request Token succesful", "Security Request Token", JOptionPane.INFORMATION_MESSAGE);
+					} catch (IOException e1) {
+						JOptionPane.showMessageDialog(null, "" + e1.getMessage(), "Security Request Token", JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			}
+		});
+
 		
 		yline++;
 
@@ -496,7 +625,16 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	protected void clientGET(String prop) {
 		try {
 			printInfo("GET request for " + prop, false);
-			client.get(prop, this);
+			if(tglbtnSecurity.isSelected()) {
+				if(asToken == null) {
+					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
+				} else {
+					log.info("Start 'secure' get");
+					client.get(prop, this, asToken);
+				}
+			} else {
+				client.get(prop, this);
+			}
 		} catch (UnsupportedException e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
@@ -505,7 +643,16 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	protected void clientObserve(String prop) {
 		try {
 			printInfo("Observe request for " + prop, false);
-			client.observe(prop, this);
+			if(tglbtnSecurity.isSelected()) {
+				if(asToken == null) {
+					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
+				} else {
+					log.info("Start 'secure' observe");
+					client.observe(prop, this, asToken);
+				}
+			} else {
+				client.observe(prop, this);
+			}
 		} catch (UnsupportedException e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
@@ -516,7 +663,16 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			byte[] payload = getPayload(prop, outputType, svalue);
 			Content c = new Content(payload, mediaType);
 			printInfo("PUT request for " + prop + ": " + new String(payload), false);
-			client.put(prop, c, this);
+			if(tglbtnSecurity.isSelected()) {
+				if(asToken == null) {
+					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
+				} else {
+					log.info("Start 'secure' put");
+					client.put(prop, c, this, asToken);
+				}
+			} else {
+				client.put(prop, c, this);
+			}
 		} catch (IllegalArgumentException e) {
 			JOptionPane.showMessageDialog(null, "No valid value of type '" + outputType + "' given: " + e.getMessage(), "Value Error", JOptionPane.ERROR_MESSAGE);
 		} catch (UnsupportedException e) {
@@ -529,7 +685,16 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			byte[] payload = getPayload(prop, inputType, svalue);
 			Content c = new Content(payload, mediaType);
 			printInfo("Action request for " + prop + ": " + new String(payload), false);
-			client.action(prop, c, this);
+			if(tglbtnSecurity.isSelected()) {
+				if(asToken == null) {
+					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
+				} else {
+					log.info("Start 'secure' action");
+					client.action(prop, c, this, asToken);
+				}
+			} else {
+				client.action(prop, c, this);
+			}
 		} catch (IllegalArgumentException e) {
 			JOptionPane.showMessageDialog(null, "No valid value of type '" + inputType + "' given", "Value Error", JOptionPane.ERROR_MESSAGE);
 		} catch (UnsupportedException e) {

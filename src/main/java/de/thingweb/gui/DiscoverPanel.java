@@ -41,7 +41,7 @@ import de.thingweb.client.Client;
 import de.thingweb.desc.DescriptionParser;
 import de.thingweb.desc.pojo.ThingDescription;
 import de.thingweb.gui.text.IntegerRangeDocumentFilter;
-import thingweb.discovery.TDRepository;
+import de.thingweb.discovery.TDRepository;
 
 import java.awt.event.ActionListener;
 import java.math.BigInteger;
