@@ -1,5 +1,5 @@
-thingweb-gui.iml
-.idea
+/thingweb-gui.iml
+/.idea
 *.class
 
 # Mobile Tools for Java (J2ME)
