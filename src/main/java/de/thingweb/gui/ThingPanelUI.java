@@ -68,7 +68,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	JToggleButton tglbtnSecurity;
 	Security4NicePlugfest s4p;
 	Registration sreg;
-	String asToken;
+	JEditorPane textAreaSecurityToken;
 	
 	final Client client;
 	// TODO support other media types
@@ -195,7 +195,10 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		gbc0_0.gridwidth = 4;
 		gbPanel.add(new JLabel("<html><h4>" + client.getUsedProtocolURI() + " (" + mediaType + ")</h4></html>"), gbc0_0);
 		
-		tglbtnSecurity = new JToggleButton("Security (ON)");
+		final String labelStringOn = "Security (ON)";
+		final String labelStringOff = "Security (OFF)";
+		
+		tglbtnSecurity = new JToggleButton(labelStringOn);
 		tglbtnSecurity.setSelected(true);
 		tglbtnSecurity.setHorizontalAlignment(SwingConstants.RIGHT);
 		GridBagConstraints gbc_tglbtnSecurity = new GridBagConstraints();
@@ -217,9 +220,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		gbc_panelSecurity.gridy = yline;
 		gbPanel.add(panelSecurity, gbc_panelSecurity);
 		GridBagLayout gbl_panelSecurity = new GridBagLayout();
-		gbl_panelSecurity.columnWidths = new int[]{0, 0, 0};
+		gbl_panelSecurity.columnWidths = new int[]{0, 0, 0, 0, 0};
 		gbl_panelSecurity.rowHeights = new int[]{0, 0, 0, 0};
-		gbl_panelSecurity.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		gbl_panelSecurity.columnWeights = new double[]{0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE};
 		gbl_panelSecurity.rowWeights = new double[]{0.0, 1.0, 1.0, Double.MIN_VALUE};
 		panelSecurity.setLayout(gbl_panelSecurity);
 		
@@ -234,13 +237,20 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		JButton btnSecurityRequestToken = new JButton("2. Request Token");
 		GridBagConstraints gbc_btnSecurityRequestToken = new GridBagConstraints();
 		gbc_btnSecurityRequestToken.anchor = GridBagConstraints.WEST;
-		gbc_btnSecurityRequestToken.insets = new Insets(0, 0, 5, 0);
+		gbc_btnSecurityRequestToken.insets = new Insets(0, 0, 5, 5);
 		gbc_btnSecurityRequestToken.gridx = 1;
 		gbc_btnSecurityRequestToken.gridy = 0;
 		panelSecurity.add(btnSecurityRequestToken, gbc_btnSecurityRequestToken);
 		
+		JCheckBox chckbxAllowModifyingSecurityToken = new JCheckBox("<html>Allow modifying security token <br/> (Warning: may break communication!)\r\n</html>");
+		GridBagConstraints gbc_chckbxAllowModifyingSecurityToken = new GridBagConstraints();
+		gbc_chckbxAllowModifyingSecurityToken.insets = new Insets(0, 0, 5, 0);
+		gbc_chckbxAllowModifyingSecurityToken.gridx = 3;
+		gbc_chckbxAllowModifyingSecurityToken.gridy = 0;
+		panelSecurity.add(chckbxAllowModifyingSecurityToken, gbc_chckbxAllowModifyingSecurityToken);
+		
 
-		JEditorPane textAreaSecurityToken = new JEditorPane();
+		textAreaSecurityToken = new JEditorPane();
 		textAreaSecurityToken.setEditable(false);
 		
 		JScrollPane scrollPane = new JScrollPane(textAreaSecurityToken);
@@ -248,26 +258,37 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		scrollPane.setMaximumSize(new Dimension(100, 100));
 		scrollPane.setSize(new Dimension(100, 100));
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.gridwidth = 3;
 		gbc_scrollPane.insets = new Insets(0, 0, 5, 5);
 		gbc_scrollPane.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane.gridx = 1;
 		gbc_scrollPane.gridy = 1;
 		panelSecurity.add(scrollPane, gbc_scrollPane);
 		
+		chckbxAllowModifyingSecurityToken.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				textAreaSecurityToken.setEditable(chckbxAllowModifyingSecurityToken.isSelected());
+				if(chckbxAllowModifyingSecurityToken.isSelected()) {
+					chckbxAllowModifyingSecurityToken.setForeground(Color.RED);
+				} else {
+					chckbxAllowModifyingSecurityToken.setForeground(null);
+				}
+			}
+		});
+		
 		tglbtnSecurity.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				if (tglbtnSecurity.isSelected()) {
-					tglbtnSecurity.setBackground(Color.GREEN);
-					tglbtnSecurity.setText("Security (ON)");
+					tglbtnSecurity.setForeground(null); // default
+					tglbtnSecurity.setText(labelStringOn);
 					panelSecurity.setVisible(true);
 					gbPanel.repaint();
 					gbPanel.updateUI();
 			    } else {
-			    	tglbtnSecurity.setBackground(Color.RED);
-			    	tglbtnSecurity.setText("Security (OFF)");
+			    	tglbtnSecurity.setForeground(Color.RED);
+			    	tglbtnSecurity.setText(labelStringOff);
 			    	panelSecurity.setVisible(false);
 			    	sreg = null;
-			    	asToken = null;
 			    	textAreaSecurityToken.setText("");
 			    }
 			}
@@ -292,8 +313,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				} else {
 					Security4NicePlugfest sec = getSecurity();
 					try {
-						asToken = sec.requestASToken(sreg);
-						textAreaSecurityToken.setText(asToken);
+						textAreaSecurityToken.setText(sec.requestASToken(sreg));
 						JOptionPane.showMessageDialog(null, "Request Token succesful", "Security Request Token", JOptionPane.INFORMATION_MESSAGE);
 					} catch (IOException e1) {
 						JOptionPane.showMessageDialog(null, "" + e1.getMessage(), "Security Request Token", JOptionPane.ERROR_MESSAGE);
@@ -626,11 +646,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		try {
 			printInfo("GET request for " + prop, false);
 			if(tglbtnSecurity.isSelected()) {
-				if(asToken == null) {
+				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
 					log.info("Start 'secure' get");
-					client.get(prop, this, asToken);
+					client.get(prop, this, textAreaSecurityToken.getText());
 				}
 			} else {
 				client.get(prop, this);
@@ -644,11 +664,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		try {
 			printInfo("Observe request for " + prop, false);
 			if(tglbtnSecurity.isSelected()) {
-				if(asToken == null) {
+				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
 					log.info("Start 'secure' observe");
-					client.observe(prop, this, asToken);
+					client.observe(prop, this, textAreaSecurityToken.getText());
 				}
 			} else {
 				client.observe(prop, this);
@@ -664,11 +684,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			Content c = new Content(payload, mediaType);
 			printInfo("PUT request for " + prop + ": " + new String(payload), false);
 			if(tglbtnSecurity.isSelected()) {
-				if(asToken == null) {
+				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
 					log.info("Start 'secure' put");
-					client.put(prop, c, this, asToken);
+					client.put(prop, c, this, textAreaSecurityToken.getText());
 				}
 			} else {
 				client.put(prop, c, this);
@@ -686,11 +706,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			Content c = new Content(payload, mediaType);
 			printInfo("Action request for " + prop + ": " + new String(payload), false);
 			if(tglbtnSecurity.isSelected()) {
-				if(asToken == null) {
+				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
 					log.info("Start 'secure' action");
-					client.action(prop, c, this, asToken);
+					client.action(prop, c, this, textAreaSecurityToken.getText());
 				}
 			} else {
 				client.action(prop, c, this);
