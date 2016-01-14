@@ -132,7 +132,7 @@ public class DiscoverPanel extends JPanel {
 							
 							Client client = thingsClient.getClientFactory().getClientFromTD(td);
 							String name = td.getMetadata().getName();
-							thingsClient.addThingPanel(client, name, name);
+							thingsClient.addThingPanel(client, name);
 						}
 						
 						JOptionPane.showMessageDialog(null, ja.length() + " thing descriptions added", "Info", JOptionPane.INFORMATION_MESSAGE);

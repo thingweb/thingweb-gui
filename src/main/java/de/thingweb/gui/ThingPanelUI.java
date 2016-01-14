@@ -254,8 +254,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		textAreaSecurityToken.setEditable(false);
 		
 		JScrollPane scrollPane = new JScrollPane(textAreaSecurityToken);
-		scrollPane.setPreferredSize(new Dimension(100, 100));
-		scrollPane.setMaximumSize(new Dimension(100, 100));
+		scrollPane.setPreferredSize(new Dimension(100, 75));
+		scrollPane.setMaximumSize(new Dimension(100, 75));
 		scrollPane.setSize(new Dimension(100, 100));
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
 		gbc_scrollPane.gridwidth = 3;

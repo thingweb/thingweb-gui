@@ -109,22 +109,20 @@ public class ThingsClient extends JFrame {
 		return clientFactory;
 	}
 
-	void addThingPanelFile(String fname, String tabTitle) {
+	void addThingPanelFile(String fname) {
 		try {
 			Client client = getClientFactory().getClientFile(fname);
-			// CoapClientImpl cl = new CoapClientImpl();
-			// cl.parse(fname);
-			addThingPanel(client, tabTitle, fname);
+			addThingPanel(client, fname);
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(this, "Could not create panel for file '" + fname + "': " + e.getMessage(),
 					"File Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
-	void addThingPanelUrl(String uri, String tabTitle) {
+	void addThingPanelUrl(String uri) {
 		try {
 			Client client = getClientFactory().getClientUrl(new URI(uri));
-			addThingPanel(client, tabTitle, uri.toString());
+			addThingPanel(client, uri.toString());
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(this, "Could not create panel for URI '" + uri + "': " + e.getMessage(),
 					"URI Error", JOptionPane.ERROR_MESSAGE);
@@ -190,11 +188,12 @@ public class ThingsClient extends JFrame {
 		tabbedPane.addTab("How to use", null, p);
 	}
 
-	void addThingPanel(Client cl, String tabTitle, String tip) throws FileNotFoundException, IOException {
+	void addThingPanel(Client cl, String tip) throws FileNotFoundException, IOException {
 		JPanel panelLed = new ThingPanelUI(cl);
 
 		JScrollPane sp = new JScrollPane(panelLed);
 
+		String tabTitle = cl.getMetadata().getName();
 		tabbedPane.addTab(tabTitle, null, sp, tip);
 		tabbedPane.setTabComponentAt(tabbedPane.indexOfComponent(sp), getTitlePanel(tabbedPane, sp, tabTitle));
 		tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
@@ -239,7 +238,7 @@ public class ThingsClient extends JFrame {
 
 					for (File f : droppedFiles) {
 						// process file(s)
-						addThingPanelFile(f.getAbsolutePath(), f.getName());
+						addThingPanelFile(f.getAbsolutePath());
 					}
 				} catch (Exception ex) {
 					JOptionPane.showMessageDialog(null,
@@ -320,7 +319,7 @@ public class ThingsClient extends JFrame {
 				if (JFileChooser.APPROVE_OPTION == getJFileChooser().showOpenDialog(null)) {
 					File f = getJFileChooser().getSelectedFile();
 					try {
-						addThingPanelFile(f.getAbsolutePath(), f.getName());
+						addThingPanelFile(f.getAbsolutePath());
 					} catch (Exception e) {
 						e.printStackTrace();
 					}
@@ -340,9 +339,9 @@ public class ThingsClient extends JFrame {
 					// see java.net.MalformedURLException: unknown protocol:
 					// coap
 					// URL url = new URL(msg);
-					int ip = url.lastIndexOf("/");
-					String tabTitle = ip > 0 ? url.substring(ip) : "msg";
-					addThingPanelUrl(url, tabTitle);
+					// int ip = url.lastIndexOf("/");
+					// String tabTitle = ip > 0 ? url.substring(ip) : "msg";
+					addThingPanelUrl(url);
 				}
 			}
 		});
