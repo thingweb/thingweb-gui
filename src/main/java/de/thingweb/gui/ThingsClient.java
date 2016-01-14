@@ -35,6 +35,7 @@ import java.awt.dnd.DropTarget;
 import java.awt.dnd.DropTargetDropEvent;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.File;
@@ -44,7 +45,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
+import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
@@ -75,7 +78,9 @@ public class ThingsClient extends JFrame {
 
 	/**
 	 * Launch the application.
-	 * @param args command-line args
+	 * 
+	 * @param args
+	 *            command-line args
 	 */
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
@@ -149,15 +154,19 @@ public class ThingsClient extends JFrame {
 						}
 					}
 				}
+
 				@Override
 				public void mouseEntered(MouseEvent e) {
 				}
+
 				@Override
 				public void mouseExited(MouseEvent e) {
 				}
+
 				@Override
 				public void mousePressed(MouseEvent e) {
 				}
+
 				@Override
 				public void mouseReleased(MouseEvent e) {
 				}
@@ -171,23 +180,52 @@ public class ThingsClient extends JFrame {
 		p.add(new JLabel(
 				"<html>This <i>things client</i> allows to load thing descriptions following the rules specified in</html>"));
 		final String sURITutorial = "https://github.com/w3c/wot/blob/master/TF-TD/Tutorial.md";
-		
+
 		p.add(new URILabel(sURITutorial));
-		p.add(new JLabel(
-				"<html>. Examples can be found here: </html>"));
+		p.add(new JLabel("<html>. Examples can be found here: </html>"));
 		final String sURIExamples = "https://github.com/w3c/wot/tree/master/TF-TD/TD%20Samples";
 		p.add(new URILabel(sURIExamples));
 		p.add(new JLabel("<html>.</html>"));
-		
+
 		tabbedPane.addTab("How to use", null, p);
 	}
 
 	void addThingPanel(Client cl, String tabTitle, String tip) throws FileNotFoundException, IOException {
 		JPanel panelLed = new ThingPanelUI(cl);
-		tabbedPane.addTab(tabTitle, null, new JScrollPane(panelLed), tip);
+
+		JScrollPane sp = new JScrollPane(panelLed);
+
+		tabbedPane.addTab(tabTitle, null, sp, tip);
+		tabbedPane.setTabComponentAt(tabbedPane.indexOfComponent(sp), getTitlePanel(tabbedPane, sp, tabTitle));
 		tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);
 	}
-	
+
+	static JPanel getTitlePanel(final JTabbedPane tabbedPane, final JComponent comp, String title) {
+		JPanel titlePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+		titlePanel.setOpaque(false);
+		JLabel titleLbl = new JLabel(title);
+		titleLbl.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 5));
+		titlePanel.add(titleLbl);
+		JButton closeButton = new JButton("x");
+		closeButton.setBorderPainted(false);
+		// closeButton.setFocusPainted(false);
+		closeButton.setContentAreaFilled(false);
+
+		closeButton.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				int dialogResult = JOptionPane.showConfirmDialog(null,
+						"Would you like to close th tab '" + title + "'?", "Close", JOptionPane.YES_NO_OPTION);
+				if (dialogResult == JOptionPane.YES_OPTION) {
+					tabbedPane.remove(comp);
+				}
+			}
+		});
+		titlePanel.add(closeButton);
+
+		return titlePanel;
+	}
+
 	@SuppressWarnings("unchecked")
 	protected void doDragAndDropFile(final JButton button) {
 		button.setDropTarget(new DropTarget() {
@@ -196,9 +234,9 @@ public class ThingsClient extends JFrame {
 			public synchronized void drop(DropTargetDropEvent evt) {
 				try {
 					evt.acceptDrop(DnDConstants.ACTION_COPY);
-					List<File> droppedFiles = (List<File>) evt.getTransferable().getTransferData(
-							DataFlavor.javaFileListFlavor);
-					
+					List<File> droppedFiles = (List<File>) evt.getTransferable()
+							.getTransferData(DataFlavor.javaFileListFlavor);
+
 					for (File f : droppedFiles) {
 						// process file(s)
 						addThingPanelFile(f.getAbsolutePath(), f.getName());
@@ -211,33 +249,34 @@ public class ThingsClient extends JFrame {
 			}
 		});
 	}
-	
-//	protected void doDragAndDropText(final JButton button) {
-//		button.setDropTarget(new DropTarget() {
-//			private static final long serialVersionUID = 1L;
-//
-//			public synchronized void drop(DropTargetDropEvent evt) {
-//				try {
-//					evt.acceptDrop(DnDConstants.ACTION_COPY);
-//					InputStream is = (InputStream) evt.getTransferable().getTransferData(
-//							DataFlavor.getTextPlainUnicodeFlavor());
-//					
-//					
-//					BufferedReader br = new BufferedReader(new InputStreamReader(is));
-//					String line;
-//					StringBuilder sb = new StringBuilder();
-//					while ((line = br.readLine()) != null) {
-//						sb.append(line);
-//					}
-//					System.out.println(sb);
-//				} catch (Exception ex) {
-//					JOptionPane.showMessageDialog(null,
-//							"Errors while creating panels for dropped content: " + ex.getMessage(), "Drop Error",
-//							JOptionPane.ERROR_MESSAGE);
-//				}
-//			}
-//		});
-//	}
+
+	// protected void doDragAndDropText(final JButton button) {
+	// button.setDropTarget(new DropTarget() {
+	// private static final long serialVersionUID = 1L;
+	//
+	// public synchronized void drop(DropTargetDropEvent evt) {
+	// try {
+	// evt.acceptDrop(DnDConstants.ACTION_COPY);
+	// InputStream is = (InputStream) evt.getTransferable().getTransferData(
+	// DataFlavor.getTextPlainUnicodeFlavor());
+	//
+	//
+	// BufferedReader br = new BufferedReader(new InputStreamReader(is));
+	// String line;
+	// StringBuilder sb = new StringBuilder();
+	// while ((line = br.readLine()) != null) {
+	// sb.append(line);
+	// }
+	// System.out.println(sb);
+	// } catch (Exception ex) {
+	// JOptionPane.showMessageDialog(null,
+	// "Errors while creating panels for dropped content: " + ex.getMessage(),
+	// "Drop Error",
+	// JOptionPane.ERROR_MESSAGE);
+	// }
+	// }
+	// });
+	// }
 
 	/**
 	 * Create the frame.
@@ -309,11 +348,11 @@ public class ThingsClient extends JFrame {
 		});
 		// doDragAndDropText(btnAddJSONLDURI);
 		panel.add(btnAddJSONLDURI);
-		
+
 		JButton btnDiscoverTD = new JButton("Discover ThingDescriptions");
 		btnDiscoverTD.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
-				
+
 				final JDialog frame = new JDialog(ThingsClient.this, "Discover Things", true);
 				frame.getContentPane().add(new DiscoverPanel(ThingsClient.this));
 				frame.pack();
