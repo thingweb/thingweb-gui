@@ -121,7 +121,7 @@ public class DiscoverPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					TDRepository tdr = new TDRepository(textFieldIP.getText(), Integer.parseInt(textFieldPort.getText()));
-					JSONArray ja = tdr.tdSearch(textFieldFreeText.getText());
+					JSONArray ja = tdr.tdFreeTextSearch(textFieldFreeText.getText());
 					if(ja == null || ja.length() == 0) {
 						throw new Exception("No matches found");
 					} else {
