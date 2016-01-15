@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicTextUI;
-import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -82,7 +81,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	
 	JTextPane infoTextPane;
 
-	Map<String, JTextComponent> propertyComponents;
+	Map<String, JTextField> propertyComponents;
+	Map<String, JTextField> actionComponents;
 	
 	final static BigInteger MAX_UNSIGNED_LONG = new BigInteger("18446744073709551615");
 	final static BigInteger MAX_UNSIGNED_INT = BigInteger.valueOf(4294967295L);
@@ -152,6 +152,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	public ThingPanelUI(Client client) {
 		this.client = client;
 		propertyComponents = new HashMap<>();
+		actionComponents = new HashMap<>();
 		
 		JPanel gbPanel = new JPanel();
 		GridBagLayout gbl_gbPanel = new GridBagLayout();
@@ -459,7 +460,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				} else {
 					textField = createTextField(a.getInputType(), false);
 				}
-				
+				actionComponents.put(a.getName(), textField);
 
 				// fire button
 				GridBagConstraints gbcX_2 = new GridBagConstraints();
@@ -649,7 +650,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
-					log.info("Start 'secure' get");
+					log.info("Start 'secure' get: " + prop);
 					client.get(prop, this, textAreaSecurityToken.getText());
 				}
 			} else {
@@ -667,7 +668,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
-					log.info("Start 'secure' observe");
+					log.info("Start 'secure' observe: " + prop);
 					client.observe(prop, this, textAreaSecurityToken.getText());
 				}
 			} else {
@@ -687,7 +688,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
-					log.info("Start 'secure' put");
+					log.info("Start 'secure' put: " + prop);
 					client.put(prop, c, this, textAreaSecurityToken.getText());
 				}
 			} else {
@@ -709,7 +710,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
-					log.info("Start 'secure' action");
+					log.info("Start 'secure' action: " + prop);
 					client.action(prop, c, this, textAreaSecurityToken.getText());
 				}
 			} else {
@@ -728,46 +729,72 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	public void onPut(String propertyName, Content response) {
 		// refreshProperty(propertyName);
 		printInfo("PUT response success for " + propertyName, false);
+		
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(UIManager.getColor("TextField.background")); // default, override possible error
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
 	}
 
 	@Override
 	public void onPutError(String propertyName) {
 		printInfo("PUT failure for " + propertyName, true);
+		
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(Color.RED);
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
 	}
 	
 	
 	private void get(String msgPrefix, String propertyName, Content response) {
 		// TODO deal with other media-types
 		assert(response.getMediaType() == MediaType.TEXT_PLAIN || response.getMediaType() == MediaType.APPLICATION_JSON);
-		JTextComponent text = propertyComponents.get(propertyName);
-		try {
-			JsonNode n = ContentHelper.readJSON(response.getContent());
-			String t;
-			if(useValueInJsonInsteadOfName) {
-				t = n.get(JSON_VALUE).asText();
-			} else {
-				t = n.get(propertyName).asText();
-			}
-			text.setText(t);
-			if(text.getText().equals(t)) {
-				printInfo(msgPrefix + " success for " + propertyName + ": " + new String(response.getContent()), false);
-			} else {
-				// Note: should not happen though
-				printInfo(msgPrefix + " error for " + propertyName + ": setting text-field value '" + t + "' failed", true);
-			}
-		} catch (Exception e) {
-			printInfo(msgPrefix + " parsing error for " + propertyName + " and value = '" + new String(response.getContent()) + "'. Invalid or empty message?", true);
-		}		
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(UIManager.getColor("TextField.background")); // default, override possible error
+			try {
+				JsonNode n = ContentHelper.readJSON(response.getContent());
+				String t;
+				if(useValueInJsonInsteadOfName) {
+					t = n.get(JSON_VALUE).asText();
+				} else {
+					t = n.get(propertyName).asText();
+				}
+				text.setText(t);
+				if(text.getText().equals(t)) {
+					printInfo(msgPrefix + " success for " + propertyName + ": " + new String(response.getContent()), false);
+				} else {
+					// Note: should not happen though
+					printInfo(msgPrefix + " error for " + propertyName + ": setting text-field value '" + t + "' failed", true);
+				}
+			} catch (Exception e) {
+				printInfo(msgPrefix + " parsing error for " + propertyName + " and value = '" + new String(response.getContent()) + "'. Invalid or empty message?", true);
+			}	
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
+	
 	}
 
 	@Override
 	public void onGet(String propertyName, Content response) {
-		get("GET response", propertyName, response);		
+		get("GET response", propertyName, response);
 	}
 
 	@Override
 	public void onGetError(String propertyName) {
 		printInfo("GET failure for " + propertyName, true);
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(Color.RED);
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
 	}
 
 	@Override
@@ -778,6 +805,12 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	@Override
 	public void onObserveError(String propertyName) {
 		printInfo("Observe failure for " + propertyName, true);
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(Color.RED);
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
 	}
 
 	@Override
@@ -788,11 +821,25 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		// TODO how to deal with action response?
 		@SuppressWarnings("unused")
 		String sresp = new String(response.getContent());
+		
+		JTextField text = actionComponents.get(actionName);
+		if(text != null) {
+			text.setBackground(UIManager.getColor("TextField.background")); // default, override possible error
+		} else {
+			log.error("No text-field found for actionName: " + actionName);
+		}
 	}
 
 	@Override
 	public void onActionError(String actionName) {
 		printInfo("Action failure for " + actionName, true);
+		
+		JTextField text = actionComponents.get(actionName);
+		if(text != null) {
+			text.setBackground(Color.RED);
+		} else {
+			log.error("No text-field found for actionName: " + actionName);
+		}
 	}
 
 }
