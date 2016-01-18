@@ -34,6 +34,7 @@ import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.Box;
@@ -47,7 +48,7 @@ import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 import javax.swing.text.PlainDocument;
 
-import org.json.JSONArray;
+import org.json.JSONObject;
 
 import com.fasterxml.jackson.core.JsonParseException;
 
@@ -80,9 +81,9 @@ public class DiscoverPanel extends JPanel {
 		setBorder(new TitledBorder(null, "Discovery options", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[]{147, 86, 65, 0};
-		gridBagLayout.rowHeights = new int[]{23, 0, 0, 0, 0, 0};
+		gridBagLayout.rowHeights = new int[]{23, 0, 0, 0, 0, 0, 0};
 		gridBagLayout.columnWeights = new double[]{0.0, 1.0, 0.0, Double.MIN_VALUE};
-		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
+		gridBagLayout.rowWeights = new double[]{0.0, 0.0, 0.0, 0.0, 0.0, 1.0, Double.MIN_VALUE};
 		setLayout(gridBagLayout);
 		
 		JLabel lblNewLabel = new JLabel("Repository URI/IP");
@@ -173,10 +174,19 @@ public class DiscoverPanel extends JPanel {
 		gbc_btnTripleSearch.gridy = 3;
 		add(btnTripleSearch, gbc_btnTripleSearch);
 		
+		JButton btnShowAll = new JButton("Show \"all\" thing descriptions");
+		GridBagConstraints gbc_btnShowAll = new GridBagConstraints();
+		gbc_btnShowAll.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnShowAll.insets = new Insets(0, 0, 5, 0);
+		gbc_btnShowAll.gridx = 2;
+		gbc_btnShowAll.gridy = 4;
+		add(btnShowAll, gbc_btnShowAll);
+		
 		JPanel searchPanel = new JPanel();
 		searchPanel.setBorder(new TitledBorder(null, "Search Results", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		searchPanel.setPreferredSize(new Dimension(100, 100));
 		GridBagConstraints gbc_panel = new GridBagConstraints();
+		gbc_panel.gridheight = 2;
 		gbc_panel.insets = new Insets(0, 0, 0, 5);
 		gbc_panel.fill = GridBagConstraints.BOTH;
 		gbc_panel.gridx = 1;
@@ -184,20 +194,33 @@ public class DiscoverPanel extends JPanel {
 		add(searchPanel, gbc_panel);
 		searchPanel.setLayout(new GridLayout(0, 1, 0, 0));
 		
-		JButton btnNewButton = new JButton("Add thing descriptions");
+		JButton btnNewButton = new JButton("Add selected thing descriptions");
 		GridBagConstraints gbc_btnNewButton = new GridBagConstraints();
 		gbc_btnNewButton.fill = GridBagConstraints.HORIZONTAL;
 		gbc_btnNewButton.gridx = 2;
-		gbc_btnNewButton.gridy = 4;
+		gbc_btnNewButton.gridy = 5;
 		add(btnNewButton, gbc_btnNewButton);
+		
+		btnShowAll.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					TDRepository tdr = new TDRepository(textFieldIP.getText(), Integer.parseInt(textFieldPort.getText()));
+					JSONObject jo = tdr.nameOfThings();
+					
+					addToSearchPanel(jo, searchPanel);
+				} catch (Exception ex) {
+					JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				}	
+			}
+		});
 		
 		btnFreeSearch.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 				try {
 					TDRepository tdr = new TDRepository(textFieldIP.getText(), Integer.parseInt(textFieldPort.getText()));
-					JSONArray ja = tdr.tdFreeTextSearch(textFieldFreeText.getText());
+					JSONObject jo = tdr.tdFreeTextSearch(textFieldFreeText.getText());
 					
-					addToSearchPanel(ja, searchPanel);
+					addToSearchPanel(jo, searchPanel);
 				} catch (Exception ex) {
 					JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 				}	
@@ -208,9 +231,9 @@ public class DiscoverPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				try {					
 					TDRepository tdr = new TDRepository(textFieldIP.getText(), Integer.parseInt(textFieldPort.getText()));
-					JSONArray ja = tdr.tdTripleSearch(textFieldTripleSearch.getText());
+					JSONObject jo = tdr.tdTripleSearch(textFieldTripleSearch.getText());
 
-					addToSearchPanel(ja, searchPanel);
+					addToSearchPanel(jo, searchPanel);
 					
 				} catch (Exception ex) {
 					JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -239,16 +262,18 @@ public class DiscoverPanel extends JPanel {
 	}
 	
 	
-	private void addToSearchPanel(JSONArray ja, JPanel panel) throws JsonParseException, IOException {
+	private void addToSearchPanel(JSONObject jo, JPanel panel) throws JsonParseException, IOException {
 		// clean-up previous calls
 		panel.removeAll();
 		tdSearches.clear();
 		
 		Box box = Box.createVerticalBox();
 		
-		if(ja != null) {
-			for(int i=0; i<ja.length(); i++) {
-				Object o = ja.get(i);
+		if(jo != null) {
+			Iterator<String> iter = jo.keySet().iterator();
+			while (iter.hasNext()) {
+				Object o = jo.get(iter.next());
+				
 				String text = o.toString(); 
 				byte[] content = text.getBytes();
 				ThingDescription td = DescriptionParser.fromBytes(content);
