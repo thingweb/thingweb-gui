@@ -774,7 +774,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				}
 			} catch (Exception e) {
 				printInfo(msgPrefix + " parsing error for " + propertyName + " and value = '" + new String(response.getContent()) + "'. Invalid or empty message?", true);
-			}	
+				text.setBackground(Color.RED);
+			}
 		} else {
 			log.error("No text-field found for propertyName: " + propertyName);
 		}
