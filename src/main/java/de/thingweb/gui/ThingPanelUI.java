@@ -45,7 +45,6 @@ import org.slf4j.LoggerFactory;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicTextUI;
-import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -68,7 +67,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	JToggleButton tglbtnSecurity;
 	Security4NicePlugfest s4p;
 	Registration sreg;
-	String asToken;
+	JEditorPane textAreaSecurityToken;
 	
 	final Client client;
 	// TODO support other media types
@@ -82,7 +81,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	
 	JTextPane infoTextPane;
 
-	Map<String, JTextComponent> propertyComponents;
+	Map<String, JTextField> propertyComponents;
+	Map<String, JTextField> actionComponents;
 	
 	final static BigInteger MAX_UNSIGNED_LONG = new BigInteger("18446744073709551615");
 	final static BigInteger MAX_UNSIGNED_INT = BigInteger.valueOf(4294967295L);
@@ -152,6 +152,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	public ThingPanelUI(Client client) {
 		this.client = client;
 		propertyComponents = new HashMap<>();
+		actionComponents = new HashMap<>();
 		
 		JPanel gbPanel = new JPanel();
 		GridBagLayout gbl_gbPanel = new GridBagLayout();
@@ -195,7 +196,10 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		gbc0_0.gridwidth = 4;
 		gbPanel.add(new JLabel("<html><h4>" + client.getUsedProtocolURI() + " (" + mediaType + ")</h4></html>"), gbc0_0);
 		
-		tglbtnSecurity = new JToggleButton("Security (ON)");
+		final String labelStringOn = "Security (ON)";
+		final String labelStringOff = "Security (OFF)";
+		
+		tglbtnSecurity = new JToggleButton(labelStringOn);
 		tglbtnSecurity.setSelected(true);
 		tglbtnSecurity.setHorizontalAlignment(SwingConstants.RIGHT);
 		GridBagConstraints gbc_tglbtnSecurity = new GridBagConstraints();
@@ -217,9 +221,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		gbc_panelSecurity.gridy = yline;
 		gbPanel.add(panelSecurity, gbc_panelSecurity);
 		GridBagLayout gbl_panelSecurity = new GridBagLayout();
-		gbl_panelSecurity.columnWidths = new int[]{0, 0, 0};
+		gbl_panelSecurity.columnWidths = new int[]{0, 0, 0, 0, 0};
 		gbl_panelSecurity.rowHeights = new int[]{0, 0, 0, 0};
-		gbl_panelSecurity.columnWeights = new double[]{0.0, 1.0, Double.MIN_VALUE};
+		gbl_panelSecurity.columnWeights = new double[]{0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE};
 		gbl_panelSecurity.rowWeights = new double[]{0.0, 1.0, 1.0, Double.MIN_VALUE};
 		panelSecurity.setLayout(gbl_panelSecurity);
 		
@@ -234,40 +238,58 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		JButton btnSecurityRequestToken = new JButton("2. Request Token");
 		GridBagConstraints gbc_btnSecurityRequestToken = new GridBagConstraints();
 		gbc_btnSecurityRequestToken.anchor = GridBagConstraints.WEST;
-		gbc_btnSecurityRequestToken.insets = new Insets(0, 0, 5, 0);
+		gbc_btnSecurityRequestToken.insets = new Insets(0, 0, 5, 5);
 		gbc_btnSecurityRequestToken.gridx = 1;
 		gbc_btnSecurityRequestToken.gridy = 0;
 		panelSecurity.add(btnSecurityRequestToken, gbc_btnSecurityRequestToken);
 		
+		JCheckBox chckbxAllowModifyingSecurityToken = new JCheckBox("<html>Allow modifying security token <br/> (Warning: may break communication!)\r\n</html>");
+		GridBagConstraints gbc_chckbxAllowModifyingSecurityToken = new GridBagConstraints();
+		gbc_chckbxAllowModifyingSecurityToken.insets = new Insets(0, 0, 5, 0);
+		gbc_chckbxAllowModifyingSecurityToken.gridx = 3;
+		gbc_chckbxAllowModifyingSecurityToken.gridy = 0;
+		panelSecurity.add(chckbxAllowModifyingSecurityToken, gbc_chckbxAllowModifyingSecurityToken);
+		
 
-		JEditorPane textAreaSecurityToken = new JEditorPane();
+		textAreaSecurityToken = new JEditorPane();
 		textAreaSecurityToken.setEditable(false);
 		
 		JScrollPane scrollPane = new JScrollPane(textAreaSecurityToken);
-		scrollPane.setPreferredSize(new Dimension(100, 100));
-		scrollPane.setMaximumSize(new Dimension(100, 100));
+		scrollPane.setPreferredSize(new Dimension(100, 75));
+		scrollPane.setMaximumSize(new Dimension(100, 75));
 		scrollPane.setSize(new Dimension(100, 100));
 		GridBagConstraints gbc_scrollPane = new GridBagConstraints();
+		gbc_scrollPane.gridwidth = 3;
 		gbc_scrollPane.insets = new Insets(0, 0, 5, 5);
 		gbc_scrollPane.fill = GridBagConstraints.BOTH;
 		gbc_scrollPane.gridx = 1;
 		gbc_scrollPane.gridy = 1;
 		panelSecurity.add(scrollPane, gbc_scrollPane);
 		
+		chckbxAllowModifyingSecurityToken.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				textAreaSecurityToken.setEditable(chckbxAllowModifyingSecurityToken.isSelected());
+				if(chckbxAllowModifyingSecurityToken.isSelected()) {
+					chckbxAllowModifyingSecurityToken.setForeground(Color.RED);
+				} else {
+					chckbxAllowModifyingSecurityToken.setForeground(null);
+				}
+			}
+		});
+		
 		tglbtnSecurity.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 				if (tglbtnSecurity.isSelected()) {
-					tglbtnSecurity.setBackground(Color.GREEN);
-					tglbtnSecurity.setText("Security (ON)");
+					tglbtnSecurity.setForeground(null); // default
+					tglbtnSecurity.setText(labelStringOn);
 					panelSecurity.setVisible(true);
 					gbPanel.repaint();
 					gbPanel.updateUI();
 			    } else {
-			    	tglbtnSecurity.setBackground(Color.RED);
-			    	tglbtnSecurity.setText("Security (OFF)");
+			    	tglbtnSecurity.setForeground(Color.RED);
+			    	tglbtnSecurity.setText(labelStringOff);
 			    	panelSecurity.setVisible(false);
 			    	sreg = null;
-			    	asToken = null;
 			    	textAreaSecurityToken.setText("");
 			    }
 			}
@@ -292,8 +314,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				} else {
 					Security4NicePlugfest sec = getSecurity();
 					try {
-						asToken = sec.requestASToken(sreg);
-						textAreaSecurityToken.setText(asToken);
+						textAreaSecurityToken.setText(sec.requestASToken(sreg));
 						JOptionPane.showMessageDialog(null, "Request Token succesful", "Security Request Token", JOptionPane.INFORMATION_MESSAGE);
 					} catch (IOException e1) {
 						JOptionPane.showMessageDialog(null, "" + e1.getMessage(), "Security Request Token", JOptionPane.ERROR_MESSAGE);
@@ -439,7 +460,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				} else {
 					textField = createTextField(a.getInputType(), false);
 				}
-				
+				actionComponents.put(a.getName(), textField);
 
 				// fire button
 				GridBagConstraints gbcX_2 = new GridBagConstraints();
@@ -626,11 +647,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		try {
 			printInfo("GET request for " + prop, false);
 			if(tglbtnSecurity.isSelected()) {
-				if(asToken == null) {
+				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
-					log.info("Start 'secure' get");
-					client.get(prop, this, asToken);
+					log.info("Start 'secure' get: " + prop);
+					client.get(prop, this, textAreaSecurityToken.getText());
 				}
 			} else {
 				client.get(prop, this);
@@ -644,11 +665,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		try {
 			printInfo("Observe request for " + prop, false);
 			if(tglbtnSecurity.isSelected()) {
-				if(asToken == null) {
+				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
-					log.info("Start 'secure' observe");
-					client.observe(prop, this, asToken);
+					log.info("Start 'secure' observe: " + prop);
+					client.observe(prop, this, textAreaSecurityToken.getText());
 				}
 			} else {
 				client.observe(prop, this);
@@ -664,11 +685,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			Content c = new Content(payload, mediaType);
 			printInfo("PUT request for " + prop + ": " + new String(payload), false);
 			if(tglbtnSecurity.isSelected()) {
-				if(asToken == null) {
+				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
-					log.info("Start 'secure' put");
-					client.put(prop, c, this, asToken);
+					log.info("Start 'secure' put: " + prop);
+					client.put(prop, c, this, textAreaSecurityToken.getText());
 				}
 			} else {
 				client.put(prop, c, this);
@@ -686,11 +707,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			Content c = new Content(payload, mediaType);
 			printInfo("Action request for " + prop + ": " + new String(payload), false);
 			if(tglbtnSecurity.isSelected()) {
-				if(asToken == null) {
+				if(textAreaSecurityToken.getText() == null || textAreaSecurityToken.getText().length() == 0) {
 					JOptionPane.showMessageDialog(null, "Unselect security or request as_token first", "Security", JOptionPane.ERROR_MESSAGE);
 				} else {
-					log.info("Start 'secure' action");
-					client.action(prop, c, this, asToken);
+					log.info("Start 'secure' action: " + prop);
+					client.action(prop, c, this, textAreaSecurityToken.getText());
 				}
 			} else {
 				client.action(prop, c, this);
@@ -708,46 +729,73 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	public void onPut(String propertyName, Content response) {
 		// refreshProperty(propertyName);
 		printInfo("PUT response success for " + propertyName, false);
+		
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(UIManager.getColor("TextField.background")); // default, override possible error
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
 	}
 
 	@Override
 	public void onPutError(String propertyName) {
 		printInfo("PUT failure for " + propertyName, true);
+		
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(Color.RED);
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
 	}
 	
 	
 	private void get(String msgPrefix, String propertyName, Content response) {
 		// TODO deal with other media-types
 		assert(response.getMediaType() == MediaType.TEXT_PLAIN || response.getMediaType() == MediaType.APPLICATION_JSON);
-		JTextComponent text = propertyComponents.get(propertyName);
-		try {
-			JsonNode n = ContentHelper.readJSON(response.getContent());
-			String t;
-			if(useValueInJsonInsteadOfName) {
-				t = n.get(JSON_VALUE).asText();
-			} else {
-				t = n.get(propertyName).asText();
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(UIManager.getColor("TextField.background")); // default, override possible error
+			try {
+				JsonNode n = ContentHelper.readJSON(response.getContent());
+				String t;
+				if(useValueInJsonInsteadOfName) {
+					t = n.get(JSON_VALUE).asText();
+				} else {
+					t = n.get(propertyName).asText();
+				}
+				text.setText(t);
+				if(text.getText().equals(t)) {
+					printInfo(msgPrefix + " success for " + propertyName + ": " + new String(response.getContent()), false);
+				} else {
+					// Note: should not happen though
+					printInfo(msgPrefix + " error for " + propertyName + ": setting text-field value '" + t + "' failed", true);
+				}
+			} catch (Exception e) {
+				printInfo(msgPrefix + " parsing error for " + propertyName + " and value = '" + new String(response.getContent()) + "'. Invalid or empty message?", true);
+				text.setBackground(Color.RED);
 			}
-			text.setText(t);
-			if(text.getText().equals(t)) {
-				printInfo(msgPrefix + " success for " + propertyName + ": " + new String(response.getContent()), false);
-			} else {
-				// Note: should not happen though
-				printInfo(msgPrefix + " error for " + propertyName + ": setting text-field value '" + t + "' failed", true);
-			}
-		} catch (Exception e) {
-			printInfo(msgPrefix + " parsing error for " + propertyName + " and value = '" + new String(response.getContent()) + "'. Invalid or empty message?", true);
-		}		
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
+	
 	}
 
 	@Override
 	public void onGet(String propertyName, Content response) {
-		get("GET response", propertyName, response);		
+		get("GET response", propertyName, response);
 	}
 
 	@Override
 	public void onGetError(String propertyName) {
 		printInfo("GET failure for " + propertyName, true);
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(Color.RED);
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
 	}
 
 	@Override
@@ -758,6 +806,12 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	@Override
 	public void onObserveError(String propertyName) {
 		printInfo("Observe failure for " + propertyName, true);
+		JTextField text = propertyComponents.get(propertyName);
+		if(text != null) {
+			text.setBackground(Color.RED);
+		} else {
+			log.error("No text-field found for propertyName: " + propertyName);
+		}
 	}
 
 	@Override
@@ -768,11 +822,25 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		// TODO how to deal with action response?
 		@SuppressWarnings("unused")
 		String sresp = new String(response.getContent());
+		
+		JTextField text = actionComponents.get(actionName);
+		if(text != null) {
+			text.setBackground(UIManager.getColor("TextField.background")); // default, override possible error
+		} else {
+			log.error("No text-field found for actionName: " + actionName);
+		}
 	}
 
 	@Override
 	public void onActionError(String actionName) {
 		printInfo("Action failure for " + actionName, true);
+		
+		JTextField text = actionComponents.get(actionName);
+		if(text != null) {
+			text.setBackground(Color.RED);
+		} else {
+			log.error("No text-field found for actionName: " + actionName);
+		}
 	}
 
 }
