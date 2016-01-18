@@ -98,6 +98,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	final static BigInteger MIN_LONG = BigInteger.valueOf(-9223372036854775808L);
 	
 	JTextField createTextField(String type, boolean editable) {
+		if(type == null) {
+			type = "";
+		}
 		JTextField textField = new JTextField();
 		textField.setEditable(editable);
 		BasicTextUI textFieldUI = new HintTextFieldUI(" " + type, editable, Color.GRAY);
