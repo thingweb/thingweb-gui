@@ -23,6 +23,7 @@
  */
 
 apply plugin: 'application'
+apply plugin: 'eclipse'
 
 mainClassName = "de.thingweb.gui.ThingsClient"
 
