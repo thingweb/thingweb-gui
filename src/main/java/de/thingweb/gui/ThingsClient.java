@@ -180,10 +180,10 @@ public class ThingsClient extends JFrame {
 		final String sURITutorial = "https://github.com/w3c/wot/blob/master/TF-TD/Tutorial.md";
 
 		p.add(new URILabel(sURITutorial));
-		p.add(new JLabel("<html>. Examples can be found here: </html>"));
+		p.add(new JLabel("<html><br /><br /></html>"));
+		p.add(new JLabel("<html>Examples can be found here: </html>"));
 		final String sURIExamples = "https://github.com/w3c/wot/tree/master/TF-TD/TD%20Samples";
 		p.add(new URILabel(sURIExamples));
-		p.add(new JLabel("<html>.</html>"));
 
 		tabbedPane.addTab("How to use", null, p);
 	}
@@ -348,11 +348,11 @@ public class ThingsClient extends JFrame {
 		// doDragAndDropText(btnAddJSONLDURI);
 		panel.add(btnAddJSONLDURI);
 
-		JButton btnDiscoverTD = new JButton("Discover ThingDescriptions");
+		JButton btnDiscoverTD = new JButton("Thing Description Repository");
 		btnDiscoverTD.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent arg0) {
 
-				final JDialog frame = new JDialog(ThingsClient.this, "Discover Things", true);
+				final JDialog frame = new JDialog(ThingsClient.this, "Thing Description Repository", true);
 				frame.getContentPane().add(new DiscoverPanel(ThingsClient.this));
 				frame.pack();
 				frame.setVisible(true);
