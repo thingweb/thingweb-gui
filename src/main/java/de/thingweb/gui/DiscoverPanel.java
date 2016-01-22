@@ -36,7 +36,6 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.math.BigInteger;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -44,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.swing.Box;
+import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JLabel;
@@ -53,7 +53,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 import javax.swing.plaf.basic.BasicTextUI;
-import javax.swing.text.PlainDocument;
 
 import org.json.JSONObject;
 
@@ -65,8 +64,6 @@ import de.thingweb.desc.pojo.Protocol;
 import de.thingweb.desc.pojo.ThingDescription;
 import de.thingweb.discovery.TDRepository;
 import de.thingweb.gui.text.HintTextFieldUI;
-import de.thingweb.gui.text.IntegerRangeDocumentFilter;
-import javax.swing.BoxLayout;
 
 public class DiscoverPanel extends JPanel {
 
@@ -109,9 +106,9 @@ public class DiscoverPanel extends JPanel {
 		setBorder(new TitledBorder(null, "Discovery options", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 147, 86, 65, 0 };
-		gridBagLayout.rowHeights = new int[] { 23, 0, 0, 0, 0, 0, 0 };
+		gridBagLayout.rowHeights = new int[] { 23, 0, 0, 0, 0, 0, 0, 0 };
 		gridBagLayout.columnWeights = new double[] { 0.0, 1.0, 0.0, Double.MIN_VALUE };
-		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, Double.MIN_VALUE };
+		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE };
 		setLayout(gridBagLayout);
 
 		JLabel lblNewLabel = new JLabel("Repository URI/IP (:Port):");
@@ -253,36 +250,67 @@ public class DiscoverPanel extends JPanel {
 		gbc_btnRemoveSelectedThings.gridx = 0;
 		gbc_btnRemoveSelectedThings.gridy = 1;
 		panel_1.add(btnRemoveSelectedThings, gbc_btnRemoveSelectedThings);
-		
-		JLabel lblAddUri = new JLabel("Add URI:");
+
+		JLabel lblAddUri = new JLabel("TD URI:");
 		GridBagConstraints gbc_lblAddUri = new GridBagConstraints();
 		gbc_lblAddUri.anchor = GridBagConstraints.EAST;
-		gbc_lblAddUri.insets = new Insets(0, 0, 0, 5);
+		gbc_lblAddUri.insets = new Insets(0, 0, 5, 5);
 		gbc_lblAddUri.gridx = 0;
 		gbc_lblAddUri.gridy = 5;
 		add(lblAddUri, gbc_lblAddUri);
-		
+
 		textFieldAddUri = new JTextField();
 		GridBagConstraints gbc_textFieldAddUri = new GridBagConstraints();
-		gbc_textFieldAddUri.insets = new Insets(0, 0, 0, 5);
+		gbc_textFieldAddUri.insets = new Insets(0, 0, 5, 5);
 		gbc_textFieldAddUri.fill = GridBagConstraints.HORIZONTAL;
 		gbc_textFieldAddUri.gridx = 1;
 		gbc_textFieldAddUri.gridy = 5;
 		add(textFieldAddUri, gbc_textFieldAddUri);
 		textFieldAddUri.setColumns(10);
-		
-		JButton btnAddUri = new JButton("Add JSON-LD URI");
+
+		JButton btnAddUri = new JButton("Add new TD to Repository");
 		btnAddUri.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				fireAddUri(textFieldAddUri.getText());
-				
+				fireAddNewTD(textFieldAddUri.getText());
 			}
 		});
 		GridBagConstraints gbc_btnAddUri = new GridBagConstraints();
+		gbc_btnAddUri.insets = new Insets(0, 0, 5, 0);
 		gbc_btnAddUri.fill = GridBagConstraints.HORIZONTAL;
 		gbc_btnAddUri.gridx = 2;
 		gbc_btnAddUri.gridy = 5;
 		add(btnAddUri, gbc_btnAddUri);
+
+		JLabel lblUpdateKey = new JLabel("Repository Key:");
+		GridBagConstraints gbc_lblUpdateKey = new GridBagConstraints();
+		gbc_lblUpdateKey.anchor = GridBagConstraints.EAST;
+		gbc_lblUpdateKey.insets = new Insets(0, 0, 0, 5);
+		gbc_lblUpdateKey.gridx = 0;
+		gbc_lblUpdateKey.gridy = 6;
+		add(lblUpdateKey, gbc_lblUpdateKey);
+
+		textFieldUpdateKey = new JTextField();
+		BasicTextUI textFieldUIUpdateKey = new HintTextFieldUI(" " + "e.g., /td/{id}", true, Color.GRAY);
+		textFieldUpdateKey.setUI(textFieldUIUpdateKey);
+		GridBagConstraints gbc_textFieldUpdateKey = new GridBagConstraints();
+		gbc_textFieldUpdateKey.insets = new Insets(0, 0, 0, 5);
+		gbc_textFieldUpdateKey.fill = GridBagConstraints.HORIZONTAL;
+		gbc_textFieldUpdateKey.gridx = 1;
+		gbc_textFieldUpdateKey.gridy = 6;
+		add(textFieldUpdateKey, gbc_textFieldUpdateKey);
+		textFieldUpdateKey.setColumns(10);
+
+		JButton btnUpdateTD = new JButton("Update existing TD in Repository");
+		btnUpdateTD.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				fireUpdateTD(textFieldUpdateKey.getText(), textFieldAddUri.getText());
+			}
+		});
+		GridBagConstraints gbc_btnUpdateTD = new GridBagConstraints();
+		gbc_btnUpdateTD.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnUpdateTD.gridx = 2;
+		gbc_btnUpdateTD.gridy = 6;
+		add(btnUpdateTD, gbc_btnUpdateTD);
 
 		btnLoadSelectedThings.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -309,7 +337,6 @@ public class DiscoverPanel extends JPanel {
 		});
 	}
 
-	
 	protected void fireLoadSelected() {
 		try {
 			for (int i = 0; i < tdSearches.size(); i++) {
@@ -326,7 +353,7 @@ public class DiscoverPanel extends JPanel {
 			JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
-	
+
 	protected void fireDeleteSelected() {
 		int numberSel = 0;
 		String success = "";
@@ -344,16 +371,16 @@ public class DiscoverPanel extends JPanel {
 				noSuccess += jb.key + ",";
 			}
 		}
-		if(numberSel > 0) {
+		if (numberSel > 0) {
 			String msg = "<html>Success for: " + success + "<br />";
-			if(noSuccess.length() > 0) {
+			if (noSuccess.length() > 0) {
 				msg += "No Success for: " + noSuccess;
 			}
 			msg += "</html>";
 			JOptionPane.showMessageDialog(null, msg);
 		}
 	}
-	
+
 	protected void fireAllSearch() {
 		try {
 			cleanSearch();
@@ -390,27 +417,52 @@ public class DiscoverPanel extends JPanel {
 			JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
-	
-	protected void fireAddUri(String uri) {
+
+	protected void fireAddNewTD(String uri) {
 		try {
+			byte[] content = getTDBytes(uri);
 			// check whether we deal with a valid TD
-			URL url = new URL(uri);
-	    	InputStream is = new BufferedInputStream(url.openStream());
-	    	ByteArrayOutputStream baos = new ByteArrayOutputStream();
-	    	int b;
-	    	while((b = is.read()) != -1) {
-	    		baos.write(b);
-	    	}
-	    	byte[] content = baos.toByteArray();
-	    	@SuppressWarnings("unused")
-	    	ThingDescription td = DescriptionParser.fromBytes(content);
-	    	
-	    	TDRepository tdr = new TDRepository(textFieldIP.getText());
-	    	String key = tdr.addTD(content);
-	    	
-	    	JOptionPane.showMessageDialog(null, "Added thing description with key: " +  key);
-	    	
+			@SuppressWarnings("unused")
+			ThingDescription td = DescriptionParser.fromBytes(content);
+
+			TDRepository tdr = new TDRepository(textFieldIP.getText());
+			String key = tdr.addTD(content);
+
+			JOptionPane.showMessageDialog(null, "<html>Added thing description with key: " + key
+					+ ". You may need to update search results.</html>");
+
 			// ThingDescription td = DescriptionParser.fromURL(new URL(uri));
+
+		} catch (Exception ex) {
+			JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private byte[] getTDBytes(String uri) throws IOException {
+
+		URL url = new URL(uri);
+		InputStream is = new BufferedInputStream(url.openStream());
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		int b;
+		while ((b = is.read()) != -1) {
+			baos.write(b);
+		}
+		byte[] content = baos.toByteArray();
+
+		return content;
+	}
+
+	protected void fireUpdateTD(String key, String uri) {
+		try {
+			byte[] content = getTDBytes(uri);
+			// check whether we deal with a valid TD
+			@SuppressWarnings("unused")
+			ThingDescription td = DescriptionParser.fromBytes(content);
+
+			TDRepository tdr = new TDRepository(textFieldIP.getText());
+			tdr.updateTD(key, content);
+
+			JOptionPane.showMessageDialog(null, "Updated thing description with key: " + key + " successfully");
 
 		} catch (Exception ex) {
 			JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -437,15 +489,24 @@ public class DiscoverPanel extends JPanel {
 				byte[] content = text.getBytes();
 				ThingDescription td = DescriptionParser.fromBytes(content);
 
-				TDCheckBox jb = new TDCheckBox(key, td);
-				// pretty print JSON
-				String t = new JSONObject(text).toString(2);
-				t = t.replace("\n", "<br />");
-				t = "<html><div style='font-size: x-small;'><pre>" + t + "</pre></div></html>";
-				jb.setToolTipText(t);
+				if (td == null || td.getInteractions() == null || td.getMetadata() == null) {
+					// sometimes repository reports strange JSON-LD files..
+					String subset = text.length() < 100 ? text : text.substring(0, 100);
+					JOptionPane.showMessageDialog(null,
+							"Could not successfully load a JSON-LD message from repository for " + key
+									+ ". JSON-LD starts with: " + subset,
+							"Error", JOptionPane.ERROR_MESSAGE);
+				} else {
+					TDCheckBox jb = new TDCheckBox(key, td);
+					// pretty print JSON
+					String t = new JSONObject(text).toString(2);
+					t = t.replace("\n", "<br />");
+					t = "<html><div style='font-size: x-small;'><pre>" + t + "</pre></div></html>";
+					jb.setToolTipText(t);
 
-				box.add(jb);
-				tdSearches.add(jb);
+					box.add(jb);
+					tdSearches.add(jb);
+				}
 			}
 		}
 
@@ -461,5 +522,6 @@ public class DiscoverPanel extends JPanel {
 	private JTextField textFieldFreeText;
 	private JTextField textFieldTripleSearch;
 	private JTextField textFieldAddUri;
+	private JTextField textFieldUpdateKey;
 
 }

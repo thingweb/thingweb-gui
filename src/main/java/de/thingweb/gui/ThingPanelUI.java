@@ -213,6 +213,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		                    "Repository IP",
 		                    TDRepository.ETH_URI);
 					if(ip != null) {
+						@SuppressWarnings("unused")
 						TDRepository td = new TDRepository(ip);
 						// TODO how to retrieve bytes from TD ?
 						
