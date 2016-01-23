@@ -33,6 +33,7 @@ import de.thingweb.client.security.Security4NicePlugfest;
 import de.thingweb.desc.pojo.ActionDescription;
 import de.thingweb.desc.pojo.EventDescription;
 import de.thingweb.desc.pojo.PropertyDescription;
+import de.thingweb.discovery.TDRepository;
 import de.thingweb.gui.text.BooleanDocumentFilter;
 import de.thingweb.gui.text.HintTextFieldUI;
 import de.thingweb.gui.text.IntegerRangeDocumentFilter;
@@ -98,6 +99,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	final static BigInteger MIN_LONG = BigInteger.valueOf(-9223372036854775808L);
 	
 	JTextField createTextField(String type, boolean editable) {
+		if(type == null) {
+			type = "";
+		}
 		JTextField textField = new JTextField();
 		textField.setEditable(editable);
 		BasicTextUI textFieldUI = new HintTextFieldUI(" " + type, editable, Color.GRAY);
@@ -193,11 +197,40 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		gbc0_0.insets = new Insets(0, 0, 5, 5);
 		gbc0_0.gridx = 0;
 		gbc0_0.gridy = yline;
-		gbc0_0.gridwidth = 4;
+		gbc0_0.gridwidth = 3;
 		gbPanel.add(new JLabel("<html><h4>" + client.getUsedProtocolURI() + " (" + mediaType + ")</h4></html>"), gbc0_0);
 		
 		final String labelStringOn = "Security (ON)";
 		final String labelStringOff = "Security (OFF)";
+		
+		JButton btnAddTDRep = new JButton("Add TD to Repository");
+		btnAddTDRep.setVisible(false);
+		btnAddTDRep.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				try {
+					String ip = JOptionPane.showInputDialog(
+		                    null,
+		                    "Repository IP",
+		                    TDRepository.ETH_URI);
+					if(ip != null) {
+						@SuppressWarnings("unused")
+						TDRepository td = new TDRepository(ip);
+						// TODO how to retrieve bytes from TD ?
+						
+//						byte[] content = null;
+//						td.addTD(content);						
+					}
+				} catch (Exception ex) {
+					JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				}
+				
+			}
+		});
+		GridBagConstraints gbc_btnAddTDRep = new GridBagConstraints();
+		gbc_btnAddTDRep.insets = new Insets(0, 0, 5, 5);
+		gbc_btnAddTDRep.gridx = 3;
+		gbc_btnAddTDRep.gridy = 0;
+		gbPanel.add(btnAddTDRep, gbc_btnAddTDRep);
 		
 		tglbtnSecurity = new JToggleButton(labelStringOn);
 		tglbtnSecurity.setSelected(true);
@@ -214,7 +247,6 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		JPanel panelSecurity = new JPanel();
 		panelSecurity.setBorder(new TitledBorder(null, "Security", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		GridBagConstraints gbc_panelSecurity = new GridBagConstraints();
-		gbc_panelSecurity.insets = new Insets(0, 0, 5, 0);
 		gbc_panelSecurity.gridwidth = 5;
 		gbc_panelSecurity.fill = GridBagConstraints.BOTH;
 		gbc_panelSecurity.gridx = 0;
