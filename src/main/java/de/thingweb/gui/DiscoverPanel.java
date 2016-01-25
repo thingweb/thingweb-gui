@@ -34,6 +34,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -46,6 +48,7 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -68,6 +71,7 @@ import de.thingweb.gui.text.HintTextFieldUI;
 public class DiscoverPanel extends JPanel {
 
 	final ThingsClient thingsClient;
+	private JFileChooser fileChooser;
 
 	final List<TDCheckBox> tdSearches = new ArrayList<>();
 	final JPanel searchPanel;
@@ -106,9 +110,9 @@ public class DiscoverPanel extends JPanel {
 		setBorder(new TitledBorder(null, "Discovery options", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		GridBagLayout gridBagLayout = new GridBagLayout();
 		gridBagLayout.columnWidths = new int[] { 147, 86, 65, 0 };
-		gridBagLayout.rowHeights = new int[] { 23, 0, 0, 0, 0, 0, 0, 0 };
+		gridBagLayout.rowHeights = new int[] { 23, 0, 0, 0, 0, 0, 0, 0, 0 };
 		gridBagLayout.columnWeights = new double[] { 0.0, 1.0, 0.0, Double.MIN_VALUE };
-		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, Double.MIN_VALUE };
+		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, Double.MIN_VALUE };
 		setLayout(gridBagLayout);
 
 		JLabel lblNewLabel = new JLabel("Repository URI/IP (:Port):");
@@ -284,7 +288,7 @@ public class DiscoverPanel extends JPanel {
 		JLabel lblUpdateKey = new JLabel("Repository Key:");
 		GridBagConstraints gbc_lblUpdateKey = new GridBagConstraints();
 		gbc_lblUpdateKey.anchor = GridBagConstraints.EAST;
-		gbc_lblUpdateKey.insets = new Insets(0, 0, 0, 5);
+		gbc_lblUpdateKey.insets = new Insets(0, 0, 5, 5);
 		gbc_lblUpdateKey.gridx = 0;
 		gbc_lblUpdateKey.gridy = 6;
 		add(lblUpdateKey, gbc_lblUpdateKey);
@@ -293,7 +297,7 @@ public class DiscoverPanel extends JPanel {
 		BasicTextUI textFieldUIUpdateKey = new HintTextFieldUI(" " + "e.g., /td/{id}", true, Color.GRAY);
 		textFieldUpdateKey.setUI(textFieldUIUpdateKey);
 		GridBagConstraints gbc_textFieldUpdateKey = new GridBagConstraints();
-		gbc_textFieldUpdateKey.insets = new Insets(0, 0, 0, 5);
+		gbc_textFieldUpdateKey.insets = new Insets(0, 0, 5, 5);
 		gbc_textFieldUpdateKey.fill = GridBagConstraints.HORIZONTAL;
 		gbc_textFieldUpdateKey.gridx = 1;
 		gbc_textFieldUpdateKey.gridy = 6;
@@ -307,10 +311,23 @@ public class DiscoverPanel extends JPanel {
 			}
 		});
 		GridBagConstraints gbc_btnUpdateTD = new GridBagConstraints();
+		gbc_btnUpdateTD.insets = new Insets(0, 0, 5, 0);
 		gbc_btnUpdateTD.fill = GridBagConstraints.HORIZONTAL;
 		gbc_btnUpdateTD.gridx = 2;
 		gbc_btnUpdateTD.gridy = 6;
 		add(btnUpdateTD, gbc_btnUpdateTD);
+		
+		JButton btnAddFileTD = new JButton("Add TD from file");
+		btnAddFileTD.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				fireAddNewTDFile();
+			}
+		});
+		GridBagConstraints gbc_btnAddFileTD = new GridBagConstraints();
+		gbc_btnAddFileTD.fill = GridBagConstraints.HORIZONTAL;
+		gbc_btnAddFileTD.gridx = 2;
+		gbc_btnAddFileTD.gridy = 7;
+		add(btnAddFileTD, gbc_btnAddFileTD);
 
 		btnLoadSelectedThings.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -337,6 +354,13 @@ public class DiscoverPanel extends JPanel {
 		});
 	}
 
+	JFileChooser getJFileChooser() {
+		if (this.fileChooser == null) {
+			fileChooser = new JFileChooser();
+		}
+		return fileChooser;
+	}
+	
 	protected void fireLoadSelected() {
 		try {
 			for (int i = 0; i < tdSearches.size(); i++) {
@@ -421,21 +445,46 @@ public class DiscoverPanel extends JPanel {
 	protected void fireAddNewTD(String uri) {
 		try {
 			byte[] content = getTDBytes(uri);
-			// check whether we deal with a valid TD
-			@SuppressWarnings("unused")
-			ThingDescription td = DescriptionParser.fromBytes(content);
+			
+			fireAddNewTDFile(content);
+		} catch (Exception ex) {
+			JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+	
+	protected void fireAddNewTDFile() {
+		try {
+			if (JFileChooser.APPROVE_OPTION == getJFileChooser().showOpenDialog(null)) {
+				File f = getJFileChooser().getSelectedFile();
+				InputStream is = new FileInputStream(f);
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+				int b;
+				while((b=is.read()) != -1) {
+					baos.write(b);
+				}
+				is.close();
+				
+				byte[] content = baos.toByteArray();
+				fireAddNewTDFile(content);
 
-			TDRepository tdr = new TDRepository(textFieldIP.getText());
-			String key = tdr.addTD(content);
-
-			JOptionPane.showMessageDialog(null, "<html>Added thing description with key: " + key
-					+ ". You may need to update search results.</html>");
-
+			}
 			// ThingDescription td = DescriptionParser.fromURL(new URL(uri));
 
 		} catch (Exception ex) {
 			JOptionPane.showMessageDialog(null, "" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
+	}
+	
+	protected void fireAddNewTDFile(byte[] content) throws Exception {
+		// check whether we deal with a valid TD
+		@SuppressWarnings("unused")
+		ThingDescription td = DescriptionParser.fromBytes(content);
+
+		TDRepository tdr = new TDRepository(textFieldIP.getText());
+		String key = tdr.addTD(content);
+
+		JOptionPane.showMessageDialog(null, "<html>Added thing description with key: " + key
+				+ ". You may need to update search results.</html>");
 	}
 
 	private byte[] getTDBytes(String uri) throws IOException {
