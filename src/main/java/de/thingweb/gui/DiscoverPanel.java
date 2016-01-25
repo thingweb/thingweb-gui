@@ -103,6 +103,14 @@ public class DiscoverPanel extends JPanel {
 			htmlLabel += "</span></html>";
 			this.setText(htmlLabel);
 		}
+		
+		public TDCheckBox(String key, String errorMsg) {
+			this.key = key;
+			this.td = null;
+			this.setText(key + " in error: " + errorMsg);
+			this.setBackground(Color.RED);
+			
+		}
 	}
 
 	public DiscoverPanel(ThingsClient thingsClient) {
@@ -533,26 +541,34 @@ public class DiscoverPanel extends JPanel {
 			while (iter.hasNext()) {
 				String key = iter.next();
 				Object o = jo.get(key);
+				
+				try {
+					String text = o.toString();
+					byte[] content = text.getBytes();
+					ThingDescription td = DescriptionParser.fromBytes(content);
+					
+					if (td == null || td.getInteractions() == null || td.getMetadata() == null) {
+						// sometimes repository reports strange JSON-LD files..
+						String subset = text.length() < 100 ? text : text.substring(0, 100);
+						throw new RuntimeException("Could not successfully load a JSON-LD message from repository for " + key
+								+ ". JSON-LD starts with: " + subset);
+					} else {
+						TDCheckBox jb = new TDCheckBox(key, td);
+						// pretty print JSON
+						String t = new JSONObject(text).toString(2);
+						t = t.replace("\n", "<br />");
+						t = "<html><div style='font-size: x-small;'><pre>" + t + "</pre></div></html>";
+						jb.setToolTipText(t);
 
-				String text = o.toString();
-				byte[] content = text.getBytes();
-				ThingDescription td = DescriptionParser.fromBytes(content);
-
-				if (td == null || td.getInteractions() == null || td.getMetadata() == null) {
-					// sometimes repository reports strange JSON-LD files..
-					String subset = text.length() < 100 ? text : text.substring(0, 100);
-					JOptionPane.showMessageDialog(null,
-							"Could not successfully load a JSON-LD message from repository for " + key
-									+ ". JSON-LD starts with: " + subset,
-							"Error", JOptionPane.ERROR_MESSAGE);
-				} else {
-					TDCheckBox jb = new TDCheckBox(key, td);
-					// pretty print JSON
-					String t = new JSONObject(text).toString(2);
-					t = t.replace("\n", "<br />");
-					t = "<html><div style='font-size: x-small;'><pre>" + t + "</pre></div></html>";
-					jb.setToolTipText(t);
-
+						box.add(jb);
+						tdSearches.add(jb);						
+					}
+				} catch(Exception e) {
+					// catch any error
+//					JOptionPane.showMessageDialog(null,
+//							e.getMessage(),
+//							"Error", JOptionPane.ERROR_MESSAGE);
+					TDCheckBox jb = new TDCheckBox(key, e.getMessage());
 					box.add(jb);
 					tdSearches.add(jb);
 				}
