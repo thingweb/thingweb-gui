@@ -193,7 +193,7 @@ public class ThingsClient extends JFrame {
 
 		JScrollPane sp = new JScrollPane(panelLed);
 
-		String tabTitle = cl.getMetadata().getName();
+		String tabTitle = cl.getThing().getName();
 		tabbedPane.addTab(tabTitle, null, sp, tip);
 		tabbedPane.setTabComponentAt(tabbedPane.indexOfComponent(sp), getTitlePanel(tabbedPane, sp, tabTitle));
 		tabbedPane.setSelectedIndex(tabbedPane.getTabCount() - 1);

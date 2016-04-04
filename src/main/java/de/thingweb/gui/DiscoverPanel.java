@@ -62,11 +62,10 @@ import org.json.JSONObject;
 import com.fasterxml.jackson.core.JsonParseException;
 
 import de.thingweb.client.Client;
-import de.thingweb.desc.DescriptionParser;
-import de.thingweb.desc.pojo.Protocol;
-import de.thingweb.desc.pojo.ThingDescription;
+import de.thingweb.desc.ThingDescriptionParser;
 import de.thingweb.discovery.TDRepository;
 import de.thingweb.gui.text.HintTextFieldUI;
+import de.thingweb.thing.Thing;
 
 public class DiscoverPanel extends JPanel {
 
@@ -81,25 +80,15 @@ public class DiscoverPanel extends JPanel {
 		private static final long serialVersionUID = -5188829331062093048L;
 
 		final String key;
-		final ThingDescription td;
+		final Thing td;
 
-		public TDCheckBox(String key, ThingDescription td) {
+		public TDCheckBox(String key, Thing td) {
 			this.key = key;
 			this.td = td;
 
-			String htmlLabel = "<html>" + td.getMetadata().getName() + " (" + key + ")<br />"
+			String htmlLabel = "<html>" + td.getName() + " (" + key + ")<br />"
 					+ "<span style='color:gray'>";
-			Map<String, Protocol> protocols = td.getMetadata().getProtocols();
-			boolean first = true;
-			for (String k : protocols.keySet()) {
-				if (first) {
-					first = false;
-				} else {
-					htmlLabel += ",";
-				}
-				Protocol p = protocols.get(k);
-				htmlLabel += k + ":" + p.getUri();
-			}
+			htmlLabel += td.getMetadata().getAll("uris");
 			htmlLabel += "</span></html>";
 			this.setText(htmlLabel);
 		}
@@ -376,7 +365,7 @@ public class DiscoverPanel extends JPanel {
 
 				if (jb.isSelected()) {
 					Client client = thingsClient.getClientFactory().getClientFromTD(jb.td);
-					String name = jb.td.getMetadata().getName();
+					String name = jb.td.getName();
 					thingsClient.addThingPanel(client, name);
 				}
 
@@ -486,7 +475,7 @@ public class DiscoverPanel extends JPanel {
 	protected void fireAddNewTDFile(byte[] content) throws Exception {
 		// check whether we deal with a valid TD
 		@SuppressWarnings("unused")
-		ThingDescription td = DescriptionParser.fromBytes(content);
+		Thing td = ThingDescriptionParser.fromBytes(content);
 
 		TDRepository tdr = new TDRepository(textFieldIP.getText());
 		String key = tdr.addTD(content);
@@ -514,7 +503,7 @@ public class DiscoverPanel extends JPanel {
 			byte[] content = getTDBytes(uri);
 			// check whether we deal with a valid TD
 			@SuppressWarnings("unused")
-			ThingDescription td = DescriptionParser.fromBytes(content);
+			Thing td = ThingDescriptionParser.fromBytes(content);
 
 			TDRepository tdr = new TDRepository(textFieldIP.getText());
 			tdr.updateTD(key, content);
@@ -545,9 +534,9 @@ public class DiscoverPanel extends JPanel {
 				try {
 					String text = o.toString();
 					byte[] content = text.getBytes();
-					ThingDescription td = DescriptionParser.fromBytes(content);
+					Thing td = ThingDescriptionParser.fromBytes(content);
 					
-					if (td == null || td.getInteractions() == null || td.getMetadata() == null) {
+					if (td == null || td.getMetadata() == null) {
 						// sometimes repository reports strange JSON-LD files..
 						String subset = text.length() < 100 ? text : text.substring(0, 100);
 						throw new RuntimeException("Could not successfully load a JSON-LD message from repository for " + key

@@ -30,32 +30,54 @@ import de.thingweb.client.Client;
 import de.thingweb.client.UnsupportedException;
 import de.thingweb.client.security.Registration;
 import de.thingweb.client.security.Security4NicePlugfest;
-import de.thingweb.desc.pojo.ActionDescription;
-import de.thingweb.desc.pojo.EventDescription;
-import de.thingweb.desc.pojo.PropertyDescription;
 import de.thingweb.discovery.TDRepository;
 import de.thingweb.gui.text.BooleanDocumentFilter;
 import de.thingweb.gui.text.HintTextFieldUI;
 import de.thingweb.gui.text.IntegerRangeDocumentFilter;
+import de.thingweb.thing.Action;
 import de.thingweb.thing.Content;
+import de.thingweb.thing.Event;
 import de.thingweb.thing.MediaType;
+import de.thingweb.thing.Property;
 import de.thingweb.util.encoding.ContentHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.swing.*;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JEditorPane;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JSplitPane;
+import javax.swing.JTextField;
+import javax.swing.JTextPane;
+import javax.swing.JToggleButton;
+import javax.swing.SwingConstants;
+import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicTextUI;
 import javax.swing.text.PlainDocument;
-import java.awt.*;
+
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.GridBagConstraints;
+import java.awt.GridBagLayout;
+import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+
 import javax.swing.border.TitledBorder;
 
 public class ThingPanelUI extends JPanel implements ActionListener, Callback {
@@ -359,7 +381,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		yline++;
 
 		// ###### Properties
-		List<PropertyDescription> properties = client.getProperties();
+		List<Property> properties = client.getThing().getProperties();
 		if(properties != null && properties.size() > 0) {
 			GridBagConstraints gbcP_0 = new GridBagConstraints();
 			gbcP_0.gridx = 0;
@@ -380,7 +402,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			yline++;
 
 			for (int i = 0; i < properties.size(); i++) {
-				PropertyDescription p = properties.get(i);
+				Property p = properties.get(i);
 
 				// label
 				GridBagConstraints gbcX_0 = new GridBagConstraints();
@@ -397,7 +419,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				gbcX_1.fill = GridBagConstraints.HORIZONTAL;
 				gbcX_1.weightx = 1;
 				gbcX_1.insets = ins2;
-				JTextField textField = createTextField(p.getOutputType(), p.isWritable());
+				JTextField textField = createTextField(p.getValueType(), p.isWritable());
 				gbPanel.add(textField, gbcX_1);
 				propertyComponents.put(p.getName(), textField);
 				// refreshProperty(p.getName()); // refresh value
@@ -445,7 +467,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 					buttonPut.addActionListener(new ActionListener() {
 						@Override
 						public void actionPerformed(ActionEvent e) {
-							clientPUT(p.getName(), p.getOutputType(), textField.getText());
+							clientPUT(p.getName(), p.getValueType(), textField.getText());
 						}
 					});
 				}
@@ -456,7 +478,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 
 
 		// ###### Actions
-		List<ActionDescription> actions = client.getActions();
+		List<Action> actions = client.getThing().getActions();
 		if(actions != null && actions.size() > 0) {
 			GridBagConstraints gbcA_0 = new GridBagConstraints();
 			gbcA_0.gridx = 0;
@@ -468,7 +490,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 
 			
 			for (int i = 0; i < actions.size(); i++) {
-				ActionDescription a = actions.get(i);
+				Action a = actions.get(i);
 
 				// label
 				GridBagConstraints gbcX_0 = new GridBagConstraints();
@@ -516,7 +538,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		
 
 		// ###### Events
-		List<EventDescription> events = client.getEvents();
+		List<Event> events = client.getThing().getEvents();
 		if(events != null && events.size() > 0) {
 			GridBagConstraints gbcE_0 = new GridBagConstraints();
 			gbcE_0.gridx = 0;
@@ -528,7 +550,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			
 			
 			for (int i = 0; i < events.size(); i++) {
-				EventDescription e = events.get(i);
+				Event e = events.get(i);
 
 				// label
 				GridBagConstraints gbcX_0 = new GridBagConstraints();
