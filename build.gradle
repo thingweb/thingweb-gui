@@ -29,7 +29,7 @@ mainClassName = "de.thingweb.gui.ThingsClient"
 
 repositories {
 	maven { url "https://jitpack.io" }
-	maven { url "http://dl.bintray.com/h0ru5/maven" }
+	maven { url "http://dl.bintray.com/thingweb/maven" }
 	mavenCentral()
 	mavenLocal()
 	jcenter()
