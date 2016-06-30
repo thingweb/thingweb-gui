@@ -24,41 +24,36 @@
 
 package de.thingweb.gui.text;
 
-import java.util.Arrays;
 import java.util.List;
 
-public class BooleanDocumentFilter extends EnumerationDocumentFilter {
+import javax.swing.text.BadLocationException;
 
-	final static String BOOLEAN_1 = "1";
-	final static String BOOLEAN_0 = "0";
-	final static String BOOLEAN_TRUE = "true";
-	final static String BOOLEAN_FALSE = "false";
-	
-	final static List<String> booleanValuesNamesAndNumbers = Arrays.asList(BOOLEAN_1, BOOLEAN_0, BOOLEAN_TRUE, BOOLEAN_FALSE);
-	final static List<String> booleanValuesNamesOnly = Arrays.asList(BOOLEAN_TRUE, BOOLEAN_FALSE);
+public class EnumerationDocumentFilter extends AbstractDocumentFilter {
 
-	public BooleanDocumentFilter() {
-		super(booleanValuesNamesAndNumbers);
+	final List<String> acceptedValues;
+
+	public EnumerationDocumentFilter(List<String> acceptedValues) {
+		super();
+		this.acceptedValues = acceptedValues;
 	}
-	
-	/**
-	 * 
-	 * @param namesOnly
-	 */
-	public BooleanDocumentFilter(boolean namesOnly) {
-		super(booleanValuesNamesOnly);
-	}
-	
-	public static boolean getBoolean(String s) throws IllegalArgumentException {
-		switch(s) {
-		case BOOLEAN_1:
-		case BOOLEAN_TRUE:
-			return true;
-		case BOOLEAN_0:
-		case BOOLEAN_FALSE:
-			return false;
-		default:
-			throw new IllegalArgumentException("Value '" + s + "' not convertable to Boolean");
+
+	@Override
+	Object checkInput(String proposedValue, int offset) throws BadLocationException {
+		if (proposedValue.length() > 0) {
+			boolean ok = false;
+			
+			for(int i=0; !ok && i<acceptedValues.size(); i++) {
+				String val = acceptedValues.get(i);
+				if (val.startsWith(proposedValue)) {
+					ok = true;
+				}
+			}
+			
+			if(!ok) {
+				throw new BadLocationException(proposedValue, offset);
+			}
+			
 		}
+		return proposedValue;
 	}
 }

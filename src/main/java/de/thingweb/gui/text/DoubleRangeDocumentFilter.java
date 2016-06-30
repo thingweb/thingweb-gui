@@ -25,34 +25,51 @@
 package de.thingweb.gui.text;
 
 import javax.swing.text.BadLocationException;
-import java.math.BigInteger;
 
-public class IntegerRangeDocumentFilter extends AbstractDocumentFilter {
+public class DoubleRangeDocumentFilter extends AbstractDocumentFilter {
 
-		BigInteger minimum, maximum;
+		final Double minimum;
+		final Double maximum;
+		final boolean isExclusiveMinimum;
+		final boolean isExclusiveMaximum;
 		
-		public IntegerRangeDocumentFilter(long minimum, long maximum) {
-			this(BigInteger.valueOf(minimum), BigInteger.valueOf(maximum));
+		public DoubleRangeDocumentFilter(double minimum, double maximum) {
+			this(minimum, maximum, false, false);
 		}
 		
-		public IntegerRangeDocumentFilter(BigInteger minimum, BigInteger maximum) {
+		private DoubleRangeDocumentFilter(double minimum, double maximum, boolean isExclusiveMinimum, boolean isExclusiveMaximum) {
 			super();
 			this.minimum = minimum;
 			this.maximum = maximum;
+			this.isExclusiveMinimum = isExclusiveMinimum;
+			this.isExclusiveMaximum = isExclusiveMaximum;
 		}
+		
+		
 
 		@Override
 		Object checkInput(String proposedValue, int offset)
 				throws BadLocationException {
-			BigInteger newValue = BigInteger.ZERO;
+			Double newValue = 0.0;
 			if (proposedValue.length() > 0) {
-				try {
-					newValue = new BigInteger(proposedValue);
-					// newValue = Integer.parseInt(proposedValue);
-				} catch (NumberFormatException e) {
+				if(proposedValue.endsWith("d") || proposedValue.endsWith("D")) {
 					throw new BadLocationException(proposedValue, offset);
+				} else {
+					try {
+						newValue = new Double(proposedValue);
+					} catch (NumberFormatException e) {
+						try {
+							// maybe 12. or 12E missing number
+							String proposedValue2 = proposedValue + "0";
+							newValue = new Double(proposedValue2);
+						} catch (NumberFormatException e2) {
+							throw new BadLocationException(proposedValue, offset);
+						}
+					}
 				}
 			}
+			// TODO isExclusiveMinimum && isExclusiveMaximum
+			
 			if(minimum.compareTo(newValue) <= 0 && newValue.compareTo(maximum) <= 0) {
 				return newValue;
 			} else {
