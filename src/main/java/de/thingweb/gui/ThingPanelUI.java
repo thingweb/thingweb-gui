@@ -111,6 +111,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	final boolean useValueInJsonInsteadOfName = true;
 	final String JSON_VALUE = "value";
 
+	final boolean SECURITY_USED_BY_DEFAULT = false;
+	
 	JButton buttonPropertiesGET;
 
 	JTextPane infoTextPane;
@@ -335,8 +337,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		gbc_btnAddTDRep.gridy = 0;
 		gbPanel.add(btnAddTDRep, gbc_btnAddTDRep);
 
-		tglbtnSecurity = new JToggleButton(labelStringOn);
-		tglbtnSecurity.setSelected(true);
+		tglbtnSecurity = new JToggleButton(SECURITY_USED_BY_DEFAULT ? labelStringOn : labelStringOff);
+		tglbtnSecurity.setSelected(SECURITY_USED_BY_DEFAULT);
 		tglbtnSecurity.setHorizontalAlignment(SwingConstants.RIGHT);
 		GridBagConstraints gbc_tglbtnSecurity = new GridBagConstraints();
 		gbc_tglbtnSecurity.insets = new Insets(0, 0, 5, 0);
@@ -348,6 +350,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		yline++;
 
 		JPanel panelSecurity = new JPanel();
+		panelSecurity.setVisible(SECURITY_USED_BY_DEFAULT);
 		panelSecurity.setBorder(new TitledBorder(null, "Security", TitledBorder.LEADING, TitledBorder.TOP, null, null));
 		GridBagConstraints gbc_panelSecurity = new GridBagConstraints();
 		gbc_panelSecurity.gridwidth = 5;
@@ -839,7 +842,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			} else {
 				client.get(prop, this);
 			}
-		} catch (UnsupportedException e) {
+		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
@@ -858,7 +861,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			} else {
 				client.observe(prop, this);
 			}
-		} catch (UnsupportedException e) {
+		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
@@ -882,7 +885,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		} catch (IllegalArgumentException e) {
 			JOptionPane.showMessageDialog(null, "Error when putting value of type '" + outputType + "' given: " + e.getMessage(),
 					"Put Error", JOptionPane.ERROR_MESSAGE);
-		} catch (UnsupportedException e) {
+		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
@@ -906,7 +909,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		} catch (IllegalArgumentException e) {
 			JOptionPane.showMessageDialog(null, "No valid value of type '" + inputType + "' given", "Value Error",
 					JOptionPane.ERROR_MESSAGE);
-		} catch (UnsupportedException e) {
+		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
