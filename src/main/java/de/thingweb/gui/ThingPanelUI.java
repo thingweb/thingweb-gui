@@ -27,7 +27,6 @@ package de.thingweb.gui;
 import com.fasterxml.jackson.databind.JsonNode;
 import de.thingweb.client.Callback;
 import de.thingweb.client.Client;
-import de.thingweb.client.UnsupportedException;
 import de.thingweb.client.security.Registration;
 import de.thingweb.client.security.Security4NicePlugfest;
 import de.thingweb.discovery.TDRepository;
@@ -43,8 +42,10 @@ import de.thingweb.thing.MediaType;
 import de.thingweb.thing.Property;
 import de.thingweb.typesystem.TypeSystem;
 import de.thingweb.typesystem.TypeSystemChecker;
+import de.thingweb.typesystem.jsonschema.JsonArray;
 import de.thingweb.typesystem.jsonschema.JsonInteger;
 import de.thingweb.typesystem.jsonschema.JsonNumber;
+import de.thingweb.typesystem.jsonschema.JsonObject;
 import de.thingweb.typesystem.jsonschema.JsonSchemaException;
 import de.thingweb.typesystem.jsonschema.JsonSchemaType;
 import de.thingweb.typesystem.jsonschema.JsonType;
@@ -54,12 +55,14 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
+import javax.swing.JComponent;
 import javax.swing.JEditorPane;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.JToggleButton;
@@ -68,6 +71,7 @@ import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicTextUI;
 import javax.swing.text.DocumentFilter;
+import javax.swing.text.JTextComponent;
 import javax.swing.text.PlainDocument;
 
 import java.awt.BorderLayout;
@@ -75,6 +79,7 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -88,6 +93,8 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import javax.swing.border.TitledBorder;
 
@@ -112,13 +119,13 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	final String JSON_VALUE = "value";
 
 	final boolean SECURITY_USED_BY_DEFAULT = false;
-	
+
 	JButton buttonPropertiesGET;
 
 	JTextPane infoTextPane;
 
-	Map<String, JTextField> propertyComponents;
-	Map<String, JTextField> actionComponents;
+	Map<String, TypeComponent> propertyComponents;
+	Map<String, TypeComponent> actionComponents;
 
 	final static BigInteger MAX_UNSIGNED_LONG = new BigInteger("18446744073709551615");
 	final static BigInteger MAX_UNSIGNED_INT = BigInteger.valueOf(4294967295L);
@@ -133,23 +140,35 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	final static BigInteger MAX_LONG = BigInteger.valueOf(9223372036854775807L);
 	final static BigInteger MIN_LONG = BigInteger.valueOf(-9223372036854775808L);
 
-	JTextField createTextField(String type, boolean editable) {
-		if (type == null) {
-			type = "";
-		} else {
-			type = type.trim();
+	class TypeComponent {
+
+		boolean isComposed = false;
+
+		JComponent component;
+
+		public String getText() {
+			if (isComposed) {
+				return "TODO composed type";
+			} else {
+				return ((JTextComponent) component).getText();
+			}
 		}
-		JTextField textField = new JTextField();
-		textField.setEditable(editable);
-		BasicTextUI textFieldUI = new HintTextFieldUI(" " + type, editable, Color.GRAY);
-		textField.setUI(textFieldUI);
-		textField.setToolTipText(type);
 
-		DocumentFilter filter = null;
+		public void setText(String text) {
+			if (isComposed) {
+				JOptionPane.showMessageDialog(null, "Unsupported Type", "Composed type", JOptionPane.ERROR_MESSAGE);
+			} else {
+				((JTextComponent) component).setText(text);
+			}
+		}
 
-		TypeSystem typeSystem = TypeSystemChecker.getTypeSystem(type);
+		public JComponent getComponent() {
+			return component;
+		}
 
-		if (typeSystem == TypeSystem.XML_SCHEMA_DATATYPES) {
+		protected JComponent getXsd(String type, boolean editable) {
+			DocumentFilter filter = null;
+
 			switch (type) {
 			case "xsd:unsignedLong":
 				filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_LONG);
@@ -179,72 +198,152 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				filter = new BooleanDocumentFilter();
 				break;
 			}
-		} else if (typeSystem == TypeSystem.JSON_SCHEMA) {
-			try {
-				JsonType jsonType = JsonSchemaType.getJsonType(type);
 
-				switch (jsonType.getPrimitiveType()) {
-				// simple types
-				case BOOLEAN:
-					filter = new BooleanDocumentFilter(true);
-					break;
-				case INTEGER:
-					BigInteger min = MIN_LONG;
-					BigInteger max = MAX_UNSIGNED_LONG;
+			JTextField XsdComponent = new JTextField();
 
-					// TODO min & max and such cause issues in GUI
-					// JsonInteger ji = (JsonInteger) jsonType;
-					// if(ji.getMinimum() != null) {
-					// min = BigInteger.valueOf(ji.getMinimum() +
-					// (ji.isExclusiveMinimum() ? 1 : 0));
-					// }
-					// if(ji.getMaximum() != null) {
-					// max = BigInteger.valueOf(ji.getMaximum() -
-					// (ji.isExclusiveMaximum() ? 1 : 0));
-					// }
+			JTextComponent textComponent = (JTextComponent) XsdComponent;
+			textComponent.setEditable(editable);
+			BasicTextUI textFieldUI = new HintTextFieldUI(" " + type, editable, Color.GRAY);
+			textComponent.setUI(textFieldUI);
+			textComponent.setToolTipText(type);
 
-					filter = new IntegerRangeDocumentFilter(min, max);
-					break;
-				case NUMBER:
-					Double dmin = Double.NEGATIVE_INFINITY;
-					Double dmax = Double.POSITIVE_INFINITY;
-
-					// TODO min & max and such cause issues in GUI
-					// JsonNumber jn = (JsonNumber) jsonType;
-					// if(jn.getMinimum() != null) {
-					// dmin = jn.getMinimum();
-					// }
-					// if(jn.getMaximum() != null) {
-					// dmax = jn.getMaximum();
-					// }
-
-					filter = new DoubleRangeDocumentFilter(dmin, dmax);
-					break;
-				case NULL:
-					filter = new EnumerationDocumentFilter(Arrays.asList("null"));
-					break;
-				case STRING:
-					break;
-				// composed types
-				case ARRAY:
-					break;
-				case OBJECT:
-					break;
-				}
-			} catch (JsonSchemaException e) {
-				log.warn("Error while setting filter for for type: " + type + ", " + e.getMessage());
+			if (filter == null) {
+				log.warn("TextField created without input control for type: " + type);
+			} else {
+				PlainDocument pd = (PlainDocument) textComponent.getDocument();
+				pd.setDocumentFilter(filter);
+				log.info("TextField created with input control for type: " + type + ", " + filter);
 			}
+
+			return XsdComponent;
 		}
 
-		if (filter == null) {
-			log.warn("TextField created without input control for type: " + type);
-		} else {
-			PlainDocument pd = (PlainDocument) textField.getDocument();
-			pd.setDocumentFilter(filter);
-			log.info("TextField created with input control for type: " + type + ", " + filter);
+		protected JComponent getJsonSchema(JsonType jsonType, boolean editable) {
+			DocumentFilter filter = null;
+
+			// default textfield
+			JComponent jsonComponent = new JTextField();
+
+			switch (jsonType.getPrimitiveType()) {
+			// simple types
+			case BOOLEAN:
+				filter = new BooleanDocumentFilter(true);
+				break;
+			case INTEGER:
+				BigInteger min = MIN_LONG;
+				BigInteger max = MAX_UNSIGNED_LONG;
+
+				// TODO min & max and such cause issues in GUI
+				// JsonInteger ji = (JsonInteger) jsonType;
+				// if(ji.getMinimum() != null) {
+				// min = BigInteger.valueOf(ji.getMinimum() +
+				// (ji.isExclusiveMinimum() ? 1 : 0));
+				// }
+				// if(ji.getMaximum() != null) {
+				// max = BigInteger.valueOf(ji.getMaximum() -
+				// (ji.isExclusiveMaximum() ? 1 : 0));
+				// }
+
+				filter = new IntegerRangeDocumentFilter(min, max);
+				break;
+			case NUMBER:
+				Double dmin = Double.NEGATIVE_INFINITY;
+				Double dmax = Double.POSITIVE_INFINITY;
+
+				// TODO min & max and such cause issues in GUI
+				// JsonNumber jn = (JsonNumber) jsonType;
+				// if(jn.getMinimum() != null) {
+				// dmin = jn.getMinimum();
+				// }
+				// if(jn.getMaximum() != null) {
+				// dmax = jn.getMaximum();
+				// }
+
+				filter = new DoubleRangeDocumentFilter(dmin, dmax);
+				break;
+			case NULL:
+				filter = new EnumerationDocumentFilter(Arrays.asList("null"));
+				break;
+			case STRING:
+				break;
+			// composed types
+			case ARRAY:
+				JsonArray ja = (JsonArray) jsonType;
+				isComposed = true;
+				// jsonComponent = new JLabel("TODO composed type array");
+				jsonComponent = new JScrollPane( new JTextArea("TODO Array of " + ja.getItemsType().getClass().getSimpleName(), 2, 0));
+				break;
+			case OBJECT:
+				JsonObject jo = (JsonObject) jsonType;
+				isComposed = true;
+				
+				JPanel panelComponent = new JPanel();
+				jsonComponent = new JScrollPane(panelComponent);
+				panelComponent.setLayout(new GridLayout(0, 3));
+				Set<Entry<String, JsonType>> entries = jo.getProperties().entrySet();
+				for (Entry<String, JsonType> e : entries) {
+					// key
+					panelComponent.add(new JLabel(e.getKey()));
+					// value
+					JsonType jt = e.getValue();
+					panelComponent.add(getJsonSchema(jt, editable));
+					// required
+					boolean required = jo.isRequired(e.getKey());
+					JCheckBox cb = new JCheckBox("Required");
+					cb.setEnabled(false);
+					cb.setSelected(required);
+					panelComponent.add(cb);
+				}
+
+				break;
+			}
+			
+			
+			jsonComponent.setToolTipText(jsonType.getClass().getSimpleName());
+			
+			if (jsonComponent instanceof JTextComponent) {
+				JTextComponent textComponent = (JTextComponent) jsonComponent;
+				textComponent.setEditable(editable);
+				BasicTextUI textFieldUI = new HintTextFieldUI(" " + jsonType.getClass().getSimpleName(), editable, Color.GRAY);
+				textComponent.setUI(textFieldUI);
+
+				if (filter == null) {
+					log.warn("TextField created without input control for type: " + jsonType);
+				} else {
+					PlainDocument pd = (PlainDocument) textComponent.getDocument();
+					pd.setDocumentFilter(filter);
+					log.info("TextField created with input control for type: " + jsonType + ", " + filter);
+				}
+			}
+
+			return jsonComponent;
 		}
 
-		return textField;
+		public TypeComponent(String type, boolean editable) {
+			if (type == null) {
+				type = "";
+			} else {
+				type = type.trim();
+			}
+
+			TypeSystem typeSystem = TypeSystemChecker.getTypeSystem(type);
+
+			if (typeSystem == TypeSystem.XML_SCHEMA_DATATYPES) {
+				this.component = getXsd(type, editable);
+			} else if (typeSystem == TypeSystem.JSON_SCHEMA) {
+				try {
+					JsonType jsonType = JsonSchemaType.getJsonType(type);
+					this.component = getJsonSchema(jsonType, editable);
+				} catch (JsonSchemaException e) {
+					log.warn("Error while setting filter for for type: " + type + ", " + e.getMessage());
+					JOptionPane.showMessageDialog(null, "Unsupported Type", "Json Schema type: " + e,
+							JOptionPane.ERROR_MESSAGE);
+				}
+
+			}
+
+		}
+
 	}
 
 	private Security4NicePlugfest getSecurity() {
@@ -510,9 +609,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				gbcX_1.fill = GridBagConstraints.HORIZONTAL;
 				gbcX_1.weightx = 1;
 				gbcX_1.insets = ins2;
-				JTextField textField = createTextField(p.getValueType(), p.isWritable());
-				gbPanel.add(textField, gbcX_1);
-				propertyComponents.put(p.getName(), textField);
+				TypeComponent typeComponent = new TypeComponent(p.getValueType(), p.isWritable());
+				gbPanel.add(typeComponent.getComponent(), gbcX_1);
+				propertyComponents.put(p.getName(), typeComponent);
 				// refreshProperty(p.getName()); // refresh value
 
 				// get button
@@ -558,7 +657,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 					buttonPut.addActionListener(new ActionListener() {
 						@Override
 						public void actionPerformed(ActionEvent e) {
-							clientPUT(p.getName(), p.getValueType(), textField.getText());
+							clientPUT(p.getName(), p.getValueType(), typeComponent.getText());
 						}
 					});
 				}
@@ -596,14 +695,14 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				gbcX_1.fill = GridBagConstraints.HORIZONTAL;
 				gbcX_1.weightx = 1;
 				gbcX_1.insets = ins2;
-				JTextField textField;
+				TypeComponent typeComponent;
 				if (a.getInputType() != null && a.getInputType().length() > 0) {
-					textField = createTextField(a.getInputType(), true);
-					gbPanel.add(textField, gbcX_1);
+					typeComponent = new TypeComponent(a.getInputType(), true);
+					gbPanel.add(typeComponent.getComponent(), gbcX_1);
 				} else {
-					textField = createTextField(a.getInputType(), false);
+					typeComponent = new TypeComponent(a.getInputType(), false);
 				}
-				actionComponents.put(a.getName(), textField);
+				actionComponents.put(a.getName(), typeComponent);
 
 				// fire button
 				GridBagConstraints gbcX_2 = new GridBagConstraints();
@@ -616,7 +715,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				buttonAction.addActionListener(new ActionListener() {
 					@Override
 					public void actionPerformed(ActionEvent e) {
-						clientAction(a.getName(), a.getInputType(), textField.getText());
+						clientAction(a.getName(), a.getInputType(), typeComponent.getText());
 					}
 				});
 
@@ -654,8 +753,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				gbcX_1.fill = GridBagConstraints.HORIZONTAL;
 				gbcX_1.weightx = 1;
 				gbcX_1.insets = ins2;
-				JTextField textField = createTextField("", false);
-				gbPanel.add(textField, gbcX_1);
+				TypeComponent typeComponent = new TypeComponent("", false);
+				gbPanel.add(typeComponent.getComponent(), gbcX_1);
 
 				// TODO how to get informed about change (observe) ????
 
@@ -679,7 +778,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			sb.append(name);
 		}
 		sb.append("\":");
-		
+
 		TypeSystem typeSystem = TypeSystemChecker.getTypeSystem(type);
 
 		if (typeSystem == TypeSystem.XML_SCHEMA_DATATYPES) {
@@ -711,7 +810,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			default:
 				// assume string --> add apostrophes
 				// TODO how to deal with null
-				// TODO how to deal with complex types... nested textfields for each
+				// TODO how to deal with complex types... nested textfields for
+				// each
 				// simple type?
 				sb.append("\"");
 				sb.append(value);
@@ -725,7 +825,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				// simple types
 				case BOOLEAN:
 					boolean b = BooleanDocumentFilter.getBoolean(value);
-					if(b) {
+					if (b) {
 						sb.append("true");
 					} else {
 						sb.append("false");
@@ -758,7 +858,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 					break;
 				}
 			} catch (JsonSchemaException e) {
-				throw new IllegalArgumentException("Error while parings value '" + value +"' as type: " + type );
+				throw new IllegalArgumentException("Error while parings value '" + value + "' as type: " + type);
 			}
 		}
 
@@ -883,8 +983,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				client.put(prop, c, this);
 			}
 		} catch (IllegalArgumentException e) {
-			JOptionPane.showMessageDialog(null, "Error when putting value of type '" + outputType + "' given: " + e.getMessage(),
-					"Put Error", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(null,
+					"Error when putting value of type '" + outputType + "' given: " + e.getMessage(), "Put Error",
+					JOptionPane.ERROR_MESSAGE);
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
@@ -921,12 +1022,12 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		// refreshProperty(propertyName);
 		printInfo("PUT response success for " + propertyName, false);
 
-		JTextField text = propertyComponents.get(propertyName);
+		TypeComponent text = propertyComponents.get(propertyName);
 		if (text != null) {
-			text.setBackground(UIManager.getColor("TextField.background")); // default,
-																			// override
-																			// possible
-																			// error
+			text.getComponent().setBackground(UIManager.getColor("TextField.background")); // default,
+			// override
+			// possible
+			// error
 		} else {
 			log.error("No text-field found for propertyName: " + propertyName);
 		}
@@ -936,9 +1037,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	public void onPutError(String propertyName) {
 		printInfo("PUT failure for " + propertyName, true);
 
-		JTextField text = propertyComponents.get(propertyName);
+		TypeComponent text = propertyComponents.get(propertyName);
 		if (text != null) {
-			text.setBackground(Color.RED);
+			text.getComponent().setBackground(Color.RED);
 		} else {
 			log.error("No text-field found for propertyName: " + propertyName);
 		}
@@ -948,12 +1049,12 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		// TODO deal with other media-types
 		assert (response.getMediaType() == MediaType.TEXT_PLAIN
 				|| response.getMediaType() == MediaType.APPLICATION_JSON);
-		JTextField text = propertyComponents.get(propertyName);
+		TypeComponent text = propertyComponents.get(propertyName);
 		if (text != null) {
-			text.setBackground(UIManager.getColor("TextField.background")); // default,
-																			// override
-																			// possible
-																			// error
+			text.getComponent().setBackground(UIManager.getColor("TextField.background")); // default,
+			// override
+			// possible
+			// error
 			try {
 				JsonNode n = ContentHelper.readJSON(response.getContent());
 				String t;
@@ -975,7 +1076,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			} catch (Exception e) {
 				printInfo(msgPrefix + " parsing error for " + propertyName + " and value = '"
 						+ new String(response.getContent()) + "'. Invalid or empty message?", true);
-				text.setBackground(Color.RED);
+				text.getComponent().setBackground(Color.RED);
 			}
 		} else {
 			log.error("No text-field found for propertyName: " + propertyName);
@@ -991,9 +1092,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	@Override
 	public void onGetError(String propertyName) {
 		printInfo("GET failure for " + propertyName, true);
-		JTextField text = propertyComponents.get(propertyName);
+		TypeComponent text = propertyComponents.get(propertyName);
 		if (text != null) {
-			text.setBackground(Color.RED);
+			text.getComponent().setBackground(Color.RED);
 		} else {
 			log.error("No text-field found for propertyName: " + propertyName);
 		}
@@ -1007,9 +1108,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	@Override
 	public void onObserveError(String propertyName) {
 		printInfo("Observe failure for " + propertyName, true);
-		JTextField text = propertyComponents.get(propertyName);
+		TypeComponent text = propertyComponents.get(propertyName);
 		if (text != null) {
-			text.setBackground(Color.RED);
+			text.getComponent().setBackground(Color.RED);
 		} else {
 			log.error("No text-field found for propertyName: " + propertyName);
 		}
@@ -1025,12 +1126,12 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		@SuppressWarnings("unused")
 		String sresp = new String(response.getContent());
 
-		JTextField text = actionComponents.get(actionName);
+		TypeComponent text = actionComponents.get(actionName);
 		if (text != null) {
-			text.setBackground(UIManager.getColor("TextField.background")); // default,
-																			// override
-																			// possible
-																			// error
+			text.getComponent().setBackground(UIManager.getColor("TextField.background")); // default,
+			// override
+			// possible
+			// error
 		} else {
 			log.error("No text-field found for actionName: " + actionName);
 		}
@@ -1040,9 +1141,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	public void onActionError(String actionName) {
 		printInfo("Action failure for " + actionName, true);
 
-		JTextField text = actionComponents.get(actionName);
+		TypeComponent text = actionComponents.get(actionName);
 		if (text != null) {
-			text.setBackground(Color.RED);
+			text.getComponent().setBackground(Color.RED);
 		} else {
 			log.error("No text-field found for actionName: " + actionName);
 		}
