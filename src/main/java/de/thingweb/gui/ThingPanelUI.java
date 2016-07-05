@@ -339,7 +339,11 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 					JOptionPane.showMessageDialog(null, "Unsupported Type", "Json Schema type: " + e,
 							JOptionPane.ERROR_MESSAGE);
 				}
-
+			}
+			
+			if(this.component == null) {
+				// get default 
+				this.component = getXsd(type, editable);
 			}
 
 		}
@@ -753,7 +757,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				gbcX_1.fill = GridBagConstraints.HORIZONTAL;
 				gbcX_1.weightx = 1;
 				gbcX_1.insets = ins2;
-				TypeComponent typeComponent = new TypeComponent("", false);
+				TypeComponent typeComponent = new TypeComponent(e.getEventType(), false);
 				gbPanel.add(typeComponent.getComponent(), gbcX_1);
 
 				// TODO how to get informed about change (observe) ????
