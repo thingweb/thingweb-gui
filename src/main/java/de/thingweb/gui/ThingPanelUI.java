@@ -25,6 +25,8 @@
 package de.thingweb.gui;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
+
 import de.thingweb.client.Callback;
 import de.thingweb.client.Client;
 import de.thingweb.client.security.Registration;
@@ -166,46 +168,52 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			return component;
 		}
 
-		protected JComponent getXsd(String type, boolean editable) {
+		protected JComponent getXsd(JsonNode type, boolean editable) {
 			DocumentFilter filter = null;
 
-			switch (type) {
-			case "xsd:unsignedLong":
-				filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_LONG);
-				break;
-			case "xsd:unsignedInt":
-				filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_INT);
-				break;
-			case "xsd:unsignedShort":
-				filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_SHORT);
-				break;
-			case "xsd:unsignedByte":
-				filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_BYTE);
-				break;
-			case "xsd:long":
-				filter = new IntegerRangeDocumentFilter(MIN_LONG, MAX_LONG);
-				break;
-			case "xsd:int":
-				filter = new IntegerRangeDocumentFilter(MIN_INT, MAX_INT);
-				break;
-			case "xsd:short":
-				filter = new IntegerRangeDocumentFilter(MIN_SHORT, MAX_SHORT);
-				break;
-			case "xsd:byte":
-				filter = new IntegerRangeDocumentFilter(MIN_BYTE, MAX_BYTE);
-				break;
-			case "xsd:boolean":
-				filter = new BooleanDocumentFilter();
-				break;
+			if(type != null && type.getNodeType() == JsonNodeType.STRING) {
+				switch (type.asText()) {
+				case "xsd:unsignedLong":
+					filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_LONG);
+					break;
+				case "xsd:unsignedInt":
+					filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_INT);
+					break;
+				case "xsd:unsignedShort":
+					filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_SHORT);
+					break;
+				case "xsd:unsignedByte":
+					filter = new IntegerRangeDocumentFilter(BigInteger.ZERO, MAX_UNSIGNED_BYTE);
+					break;
+				case "xsd:long":
+					filter = new IntegerRangeDocumentFilter(MIN_LONG, MAX_LONG);
+					break;
+				case "xsd:int":
+					filter = new IntegerRangeDocumentFilter(MIN_INT, MAX_INT);
+					break;
+				case "xsd:short":
+					filter = new IntegerRangeDocumentFilter(MIN_SHORT, MAX_SHORT);
+					break;
+				case "xsd:byte":
+					filter = new IntegerRangeDocumentFilter(MIN_BYTE, MAX_BYTE);
+					break;
+				case "xsd:boolean":
+					filter = new BooleanDocumentFilter();
+					break;
+				}
 			}
+
 
 			JTextField XsdComponent = new JTextField();
 
 			JTextComponent textComponent = (JTextComponent) XsdComponent;
 			textComponent.setEditable(editable);
-			BasicTextUI textFieldUI = new HintTextFieldUI(" " + type, editable, Color.GRAY);
-			textComponent.setUI(textFieldUI);
-			textComponent.setToolTipText(type);
+			if(type != null) {
+				BasicTextUI textFieldUI = new HintTextFieldUI(" " + type, editable, Color.GRAY);
+				textComponent.setUI(textFieldUI);
+				textComponent.setToolTipText(type.toString());
+			}
+
 
 			if (filter == null) {
 				log.warn("TextField created without input control for type: " + type);
@@ -319,13 +327,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			return jsonComponent;
 		}
 
-		public TypeComponent(String type, boolean editable) {
-			if (type == null) {
-				type = "";
-			} else {
-				type = type.trim();
-			}
-
+		public TypeComponent(JsonNode type, boolean editable) {
 			TypeSystem typeSystem = TypeSystemChecker.getTypeSystem(type);
 
 			if (typeSystem == TypeSystem.XML_SCHEMA_DATATYPES) {
@@ -700,13 +702,14 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				gbcX_1.weightx = 1;
 				gbcX_1.insets = ins2;
 				TypeComponent typeComponent;
-				if (a.getInputType() != null && a.getInputType().length() > 0) {
+				if (a.getInputType() != null) {
 					typeComponent = new TypeComponent(a.getInputType(), true);
 					gbPanel.add(typeComponent.getComponent(), gbcX_1);
 				} else {
 					typeComponent = new TypeComponent(a.getInputType(), false);
 				}
 				actionComponents.put(a.getName(), typeComponent);
+				
 
 				// fire button
 				GridBagConstraints gbcX_2 = new GridBagConstraints();
@@ -757,7 +760,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				gbcX_1.fill = GridBagConstraints.HORIZONTAL;
 				gbcX_1.weightx = 1;
 				gbcX_1.insets = ins2;
-				TypeComponent typeComponent = new TypeComponent(e.getEventType(), false);
+				TypeComponent typeComponent = new TypeComponent(e.getValueType(), false);
 				gbPanel.add(typeComponent.getComponent(), gbcX_1);
 
 				// TODO how to get informed about change (observe) ????
@@ -769,7 +772,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	}
 
 	// https://github.com/w3c/wot/blob/master/TF-TD/Tutorial.md#coap-protocol-binding
-	protected byte[] getPayload(String name, String type, String value) throws IllegalArgumentException {
+	protected byte[] getPayload(String name, JsonNode type, String value) throws IllegalArgumentException {
 		assert (this.mediaType == MediaType.APPLICATION_JSON);
 		// {
 		// "value" : 4000
@@ -786,37 +789,39 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		TypeSystem typeSystem = TypeSystemChecker.getTypeSystem(type);
 
 		if (typeSystem == TypeSystem.XML_SCHEMA_DATATYPES) {
-			switch (type) {
-			case "xsd:unsignedLong":
-			case "xsd:unsignedInt":
-			case "xsd:unsignedShort":
-			case "xsd:unsignedByte":
-			case "xsd:long":
-			case "xsd:int":
-			case "xsd:short":
-			case "xsd:byte":
-				try {
-					// parse integer
-					new BigInteger(value);
-					sb.append(value);
-				} catch (NumberFormatException e) {
-					throw new IllegalArgumentException("'" + value + "' is not a valid integer");
+			boolean xsdSet = false;
+			if(type.getNodeType() == JsonNodeType.STRING) {
+				switch (type.asText()) {
+				case "xsd:unsignedLong":
+				case "xsd:unsignedInt":
+				case "xsd:unsignedShort":
+				case "xsd:unsignedByte":
+				case "xsd:long":
+				case "xsd:int":
+				case "xsd:short":
+				case "xsd:byte":
+					try {
+						// parse integer
+						new BigInteger(value);
+						sb.append(value);
+						xsdSet = true;
+					} catch (NumberFormatException e) {
+						throw new IllegalArgumentException("'" + value + "' is not a valid integer");
+					}
+					break;
+				case "xsd:boolean":
+					boolean b = BooleanDocumentFilter.getBoolean(value);
+					if (b) {
+						sb.append("true");
+					} else {
+						sb.append("false");
+					}
+					xsdSet = true;
+					break;
 				}
-				break;
-			case "xsd:boolean":
-				boolean b = BooleanDocumentFilter.getBoolean(value);
-				if (b) {
-					sb.append("true");
-				} else {
-					sb.append("false");
-				}
-				break;
-			default:
-				// assume string --> add apostrophes
-				// TODO how to deal with null
-				// TODO how to deal with complex types... nested textfields for
-				// each
-				// simple type?
+			} 
+			if(!xsdSet) {
+				// default ? assume string plus apostrophes
 				sb.append("\"");
 				sb.append(value);
 				sb.append("\"");
@@ -970,7 +975,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		}
 	}
 
-	protected void clientPUT(String prop, String outputType, String svalue) {
+	protected void clientPUT(String prop, JsonNode outputType, String svalue) {
 		try {
 			byte[] payload = getPayload(prop, outputType, svalue);
 			Content c = new Content(payload, mediaType);
@@ -988,14 +993,14 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			}
 		} catch (IllegalArgumentException e) {
 			JOptionPane.showMessageDialog(null,
-					"Error when putting value of type '" + outputType + "' given: " + e.getMessage(), "Put Error",
+					"Error when putting value of type '" + outputType.toString() + "' given: " + e.getMessage(), "Put Error",
 					JOptionPane.ERROR_MESSAGE);
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 	}
 
-	protected void clientAction(String prop, String inputType, String svalue) {
+	protected void clientAction(String prop, JsonNode inputType, String svalue) {
 		try {
 			byte[] payload = getPayload(prop, inputType, svalue);
 			Content c = new Content(payload, mediaType);
@@ -1012,7 +1017,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 				client.action(prop, c, this);
 			}
 		} catch (IllegalArgumentException e) {
-			JOptionPane.showMessageDialog(null, "No valid value of type '" + inputType + "' given", "Value Error",
+			JOptionPane.showMessageDialog(null, "No valid value of type '" + inputType.toString() + "' given", "Value Error",
 					JOptionPane.ERROR_MESSAGE);
 		} catch (Exception e) {
 			JOptionPane.showMessageDialog(null, "" + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
