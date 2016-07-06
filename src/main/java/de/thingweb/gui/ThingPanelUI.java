@@ -774,6 +774,13 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	// https://github.com/w3c/wot/blob/master/TF-TD/Tutorial.md#coap-protocol-binding
 	protected byte[] getPayload(String name, JsonNode type, String value) throws IllegalArgumentException {
 		assert (this.mediaType == MediaType.APPLICATION_JSON);
+		
+		if(type == null) {
+			// no value
+			return new byte[0];
+		}
+		
+		
 		// {
 		// "value" : 4000
 		// }
