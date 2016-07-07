@@ -88,7 +88,7 @@ public class DiscoverPanel extends JPanel {
 
 			String htmlLabel = "<html>" + td.getName() + " (" + key + ")<br />"
 					+ "<span style='color:gray'>";
-			htmlLabel += td.getMetadata().getAll("uris");
+			htmlLabel += td.getMetadata().get("uris");
 			htmlLabel += "</span></html>";
 			this.setText(htmlLabel);
 		}
