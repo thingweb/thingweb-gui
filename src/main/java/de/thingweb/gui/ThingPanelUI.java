@@ -25,7 +25,9 @@
 package de.thingweb.gui;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.JsonNodeType;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import de.thingweb.client.Callback;
 import de.thingweb.client.Client;
@@ -78,6 +80,7 @@ import javax.swing.text.PlainDocument;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -89,6 +92,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -105,6 +109,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	private static final Logger log = LoggerFactory.getLogger(ThingPanelUI.class);
 
 	private static final long serialVersionUID = 2117762031555752901L;
+
+	private static final JsonNodeFactory factory = new JsonNodeFactory(false);
 
 	// Security
 	JToggleButton tglbtnSecurity;
@@ -147,20 +153,39 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		boolean isComposed = false;
 
 		JComponent component;
+		
+		List<JComponent> children;
 
 		public String getText() {
 			if (isComposed) {
-				return "TODO composed type";
+				StringBuilder sb = new StringBuilder();
+				for(JComponent jc : children) {
+					if(jc instanceof JTextComponent) {
+						sb.append("\"" + jc.getName() + "\": "+ ((JTextComponent) jc).getText() + ", ");
+					}
+				}
+				return sb.substring(0, sb.length()-2); // remove last ","
 			} else {
 				return ((JTextComponent) component).getText();
 			}
 		}
 
-		public void setText(String text) {
+		public void setText(JsonNode jn) {
 			if (isComposed) {
-				JOptionPane.showMessageDialog(null, "Unsupported Type", "Composed type", JOptionPane.ERROR_MESSAGE);
+				if(jn.getNodeType() == JsonNodeType.OBJECT) {
+					com.fasterxml.jackson.databind.node.ObjectNode on = (ObjectNode) jn;
+					for(JComponent jc : children) {
+						if(jc instanceof JTextComponent) {
+							JsonNode jn2 = on.get(jc.getName());
+							// TODO nested components
+							((JTextComponent) jc).setText(jn2.asText());
+						}
+					}
+				} else {
+					 JOptionPane.showMessageDialog(null, "Unsupported Type", "Composed type value: " + jn, JOptionPane.ERROR_MESSAGE);
+				}
 			} else {
-				((JTextComponent) component).setText(text);
+				((JTextComponent) component).setText(jn.asText());
 			}
 		}
 
@@ -284,6 +309,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			case OBJECT:
 				JsonObject jo = (JsonObject) jsonType;
 				isComposed = true;
+				children = new ArrayList<JComponent>();
 				
 				JPanel panelComponent = new JPanel();
 				jsonComponent = new JScrollPane(panelComponent);
@@ -294,7 +320,10 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 					panelComponent.add(new JLabel(e.getKey()));
 					// value
 					JsonType jt = e.getValue();
-					panelComponent.add(getJsonSchema(jt, editable));
+					JComponent jc = getJsonSchema(jt, editable);
+					jc.setName(e.getKey());
+					children.add(jc);
+					panelComponent.add(jc);
 					// required
 					boolean required = jo.isRequired(e.getKey());
 					JCheckBox cb = new JCheckBox("Required");
@@ -870,7 +899,9 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 					// TODO array
 					break;
 				case OBJECT:
-					// TODO object
+					sb.append("{");
+					sb.append(value);
+					sb.append("}");
 					break;
 				}
 			} catch (JsonSchemaException e) {
@@ -1073,22 +1104,27 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 			// error
 			try {
 				JsonNode n = ContentHelper.readJSON(response.getContent());
-				String t;
+				JsonNode t;
+				
 				if (useValueInJsonInsteadOfName) {
-					t = n.get(JSON_VALUE).asText();
+					t = n.get(JSON_VALUE); // .asText();
 				} else {
-					t = n.get(propertyName).asText();
+					t = n.get(propertyName); // .asText();
 				}
+				
 				text.setText(t);
-				if (text.getText().equals(t)) {
+				
+
+				
+//				if (text.getText().equals(t)) {
 					printInfo(msgPrefix + " success for " + propertyName + ": " + new String(response.getContent()),
 							false);
-				} else {
-					// Note: should not happen though
-					printInfo(
-							msgPrefix + " error for " + propertyName + ": setting text-field value '" + t + "' failed",
-							true);
-				}
+//				} else {
+//					// Note: should not happen though
+//					printInfo(
+//							msgPrefix + " error for " + propertyName + ": setting text-field value '" + t + "' failed",
+//							true);
+//				}
 			} catch (Exception e) {
 				printInfo(msgPrefix + " parsing error for " + propertyName + " and value = '"
 						+ new String(response.getContent()) + "'. Invalid or empty message?", true);
