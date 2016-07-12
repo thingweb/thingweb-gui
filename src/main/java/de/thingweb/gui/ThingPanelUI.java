@@ -439,7 +439,7 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 		gbc0_0.gridx = 0;
 		gbc0_0.gridy = yline;
 		gbc0_0.gridwidth = 3;
-		gbPanel.add(new JLabel("<html><h4>" + client.getUsedProtocolURI() + " (" + mediaType + ")</h4></html>"),
+		gbPanel.add(new JLabel("<html><h4>" + client.getUsedHref() + " (" + mediaType + ")</h4></html>"),
 				gbc0_0);
 
 		final String labelStringOn = "Security (ON)";
@@ -1081,8 +1081,8 @@ public class ThingPanelUI extends JPanel implements ActionListener, Callback {
 	}
 
 	@Override
-	public void onPutError(String propertyName) {
-		printInfo("PUT failure for " + propertyName, true);
+	public void onPutError(String propertyName, String message) {
+		printInfo("PUT failure for " + propertyName + ": " + message, true);
 
 		TypeComponent text = propertyComponents.get(propertyName);
 		if (text != null) {
